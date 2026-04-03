@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth, SavedSimulation } from '../contexts/AuthContext';
-import { useWatchlist, Notification as AppNotification } from '../contexts/WatchlistContext';
+import { useAuth, SavedSimulation } from '../../contexts/AuthContext';
+import { useWatchlist, Notification as AppNotification } from '../../contexts/WatchlistContext';
 import { 
   User, 
   Settings, 

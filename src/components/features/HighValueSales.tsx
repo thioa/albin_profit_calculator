@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { AlbionItem, AlbionHistory, AlbionServer, ALBION_CITIES } from "../types/albion";
-import { fetchHistory } from "../lib/albion-api";
-import { formatSilver } from "../lib/economy-utils";
+import { AlbionItem, AlbionHistory, AlbionServer, ALBION_CITIES } from "../../types/albion";
+import { fetchHistory } from "../../lib/albion-api";
+import { formatSilver } from "../../lib/economy-utils";
 import { Loader2, TrendingUp, Clock, DollarSign, Package, MapPin, ChevronRight, Filter, Search, ArrowUpRight, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 

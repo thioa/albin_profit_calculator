@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { AlbionItem, AlbionCity, AlbionServer } from "../types/albion";
-import { fetchPrices } from "../lib/albion-api";
+import { AlbionItem, AlbionCity, AlbionServer } from "../../types/albion";
+import { fetchPrices } from "../../lib/albion-api";
 import { 
   calculateNetRevenue,
   getCraftingCity,
   getRrr,
   RrrConfig,
-} from "../lib/crafting-utils";
-import { formatSilver } from "../lib/economy-utils";
-import SearchBar from "./SearchBar";
+} from "../../lib/crafting-utils";
+import { formatSilver } from "../../lib/economy-utils";
+import SearchBar from "../common/SearchBar";
 import { 
   Loader2, 
   Package, 
@@ -31,10 +31,10 @@ import {
   Check as CheckIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
-import { useAuth, SavedSimulation } from "../contexts/AuthContext";
-import { serializeState, deserializeState, compressCalculatorState, decompressCalculatorState } from "../lib/share-utils";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
+import { useAuth, SavedSimulation } from "../../contexts/AuthContext";
+import { serializeState, deserializeState, compressCalculatorState, decompressCalculatorState } from "../../lib/share-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 

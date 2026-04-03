@@ -1,27 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
-import { AlbionItem, AlbionPrice, ALBION_CITIES, ItemQuality, AlbionCity, AlbionServer } from "../types/albion";
-import { fetchPrices, fetchHistory } from "../lib/albion-api";
-import SearchBar from "./SearchBar";
-import PriceCard from "./PriceCard";
-import CityFilter from "./CityFilter";
+import { AlbionItem, AlbionPrice, ALBION_CITIES, ItemQuality, AlbionCity, AlbionServer } from "../../types/albion";
+import { fetchPrices, fetchHistory } from "../../lib/albion-api";
+import SearchBar from "../common/SearchBar";
+import PriceCard from "../common/PriceCard";
+import CityFilter from "../common/CityFilter";
 import MarketOpportunities, { VerificationStatus, SortOption } from "./MarketOpportunities";
 import HighValueSales from "./HighValueSales";
-import CraftingCalculator from "./CraftingCalculator";
-import RefiningCalculator from "./RefiningCalculator";
-import CookingCalculator from "./CookingCalculator";
+import CraftingCalculator from "../calculators/CraftingCalculator";
+import RefiningCalculator from "../calculators/RefiningCalculator";
+import CookingCalculator from "../calculators/CookingCalculator";
 import CraftingRecommendations from "./CraftingRecommendations";
-import Library from "./Library";
+import Library from "../library/Library";
 import { Loader2, Settings, Info, AlertCircle, Globe, Search, TrendingUp, Clock, Filter, Check, ChevronDown, Sparkles, DollarSign, Hammer, Pickaxe, ChefHat, BookOpen, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 
-import { useAuth, SavedSimulation } from "../contexts/AuthContext";
-import { useWatchlist } from "../contexts/WatchlistContext";
-import AuthModal from "./AuthModal";
-import ProfileView from "./ProfileView";
+import { useAuth, SavedSimulation } from "../../contexts/AuthContext";
+import { useWatchlist } from "../../contexts/WatchlistContext";
+import AuthModal from "../auth/AuthModal";
+import ProfileView from "../auth/ProfileView";
 
 export default function PriceChecker({ server, onServerChange }: { server: AlbionServer; onServerChange?: (s: AlbionServer) => void }) {
   const [activeTab, setActiveTab] = useState<"search" | "opportunities" | "high-value" | "recommendations" | "crafting" | "refining" | "cooking" | "library" | "profile" | "notifications">("search");

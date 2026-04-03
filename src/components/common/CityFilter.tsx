@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import { AlbionCity, ALBION_CITIES } from "../types/albion";
+import { AlbionCity, ALBION_CITIES } from "../../types/albion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

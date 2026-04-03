@@ -1,5 +1,5 @@
-import { AlbionPrice, ProfitResult } from "../types/albion";
-import { calculateProfit, formatSilver, getFreshnessLevel, getProfitPercentage, formatTimeAgo } from "../lib/economy-utils";
+import { AlbionPrice, ProfitResult } from "../../types/albion";
+import { calculateProfit, formatSilver, getFreshnessLevel, getProfitPercentage, formatTimeAgo } from "../../lib/economy-utils";
 import { TrendingUp, TrendingDown, Clock, MapPin, ShieldAlert, ShieldCheck, Zap } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";

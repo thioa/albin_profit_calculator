@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Fuse from "fuse.js";
 import { Search, Loader2, Filter, ChevronDown } from "lucide-react";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
-import { AlbionItem } from "../types/albion";
+import { AlbionItem } from "../../types/albion";
 
 interface SearchBarProps {
   onSelect: (item: AlbionItem) => void;

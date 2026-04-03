@@ -273,7 +273,14 @@ export default function PriceChecker({ server, onServerChange }: { server: Albio
         <div className="px-6 mb-8">
           <div 
             className="flex items-center gap-3 cursor-pointer group"
-            onClick={() => user ? setActiveTab("profile") : (setAuthMode('login'), setShowAuthModal(true))}
+            onClick={() => {
+              if (user) {
+                setActiveTab("profile");
+              } else {
+                setAuthMode('login');
+                setShowAuthModal(true);
+              }
+            }}
           >
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-surface-container-highest flex items-center justify-center border border-primary/20 group-hover:border-primary/50 transition-all">
               <span className="material-symbols-outlined text-primary text-xl">{user ? 'account_circle' : 'login'}</span>

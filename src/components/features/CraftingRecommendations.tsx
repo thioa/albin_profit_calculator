@@ -10,6 +10,7 @@ import { Loader2, RefreshCw, Info, Clock, ArrowRight, Zap, TrendingUp, AlertTria
 import { useAuth } from "../../contexts/AuthContext";
 import { useWatchlist } from "../../contexts/WatchlistContext";
 import { motion, AnimatePresence } from "motion/react";
+import { getOrMarkStale, setPriceCacheBatch, TTL, clearAllPrices } from "../../lib/price-cache";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 
@@ -21,6 +22,8 @@ interface CraftingRecommendationsProps {
 export default function CraftingRecommendations({ server, isPremium }: CraftingRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [backgroundScan, setBackgroundScan] = useState(false);
+  const [cacheAge, setCacheAge] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [displayLimit, setDisplayLimit] = useState(10);
   const [rrrConfig, setRrrConfig] = useState<RrrConfig>({ stationBonus: 10, cityBonus: true, focus: false });
@@ -41,74 +44,78 @@ export default function CraftingRecommendations({ server, isPremium }: CraftingR
 
   const rrr = useMemo(() => getRrr(rrrConfig), [rrrConfig]);
 
-  const scanRecommendations = async () => {
+  const processAndSetResults = (data: any[], currentScanId: number) => {
+    if (currentScanId !== scanIdRef.current) return;
+    const priceMap: Record<string, Record<string, number>> = {};
+    data.forEach(p => {
+      if (!priceMap[p.item_id]) priceMap[p.item_id] = {};
+      priceMap[p.item_id][p.city] = p.sell_price_min;
+    });
+    const analysisCity = fixedCity === "Global" ? undefined : fixedCity;
+    const results: RecommendationResult[] = filteredTargets.map(item =>
+      calculateRecommendationProfit(item, priceMap, rrr, isPremium, analysisCity)
+    ).filter(r => r && r.profit > 0) as RecommendationResult[];
+    setRecommendations(results.sort((a, b) => b.profit - a.profit));
+  };
+
+  // Lazily compute filteredTargets inside scan to keep it DRY
+  const getFilteredTargets = () => itemsData.filter(item =>
+    item.craftingRecipe && item.craftingRecipe.length > 0 && selectedTiers.includes(item.tier) &&
+    HOT_ITEMS.some(hotId => item.id.startsWith(hotId))
+  );
+
+  const scanRecommendations = async (forceRefresh = false) => {
     const currentScanId = ++scanIdRef.current;
-    setLoading(true);
+    setLoading(false);
     setError(null);
     try {
-      // 1. Identify items to scan (those with recipes and in selected tiers)
-      const targetItems = itemsData.filter(item => 
-        item.craftingRecipe && 
-        item.craftingRecipe.length > 0 && 
-        selectedTiers.includes(item.tier)
-      );
+      const filteredTargets = getFilteredTargets();
+      if (filteredTargets.length === 0) { setRecommendations([]); return; }
 
-      // Limit to HOT_ITEMS or high volume items if possible to avoid huge API calls
-      // For now, let's filter targetItems by HOT_ITEMS to be safe
-      const filteredTargets = targetItems.filter(item => 
-        HOT_ITEMS.some(hotId => item.id.startsWith(hotId))
-      );
-
-      if (filteredTargets.length === 0) {
-        setRecommendations([]);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Build list of ALL unique IDs (products + ingredients)
-      const allIds = new Set<string>();
-      filteredTargets.forEach(item => {
-        allIds.add(item.id);
-        item.craftingRecipe?.forEach(req => allIds.add(req.id));
-      });
-
-      // 3. Fetch Prices for all IDs in all major cities
       const cities: AlbionCity[] = ["Martlock", "Bridgewatch", "Lymhurst", "Fort Sterling", "Thetford", "Caerleon"];
-      const data = await fetchPrices(Array.from(allIds), cities, [1], server);
-
-      if (currentScanId !== scanIdRef.current) return;
-
-      // 4. Group prices for easy lookup
-      const priceMap: Record<string, Record<string, number>> = {};
-      data.forEach(p => {
-        if (!priceMap[p.item_id]) priceMap[p.item_id] = {};
-        priceMap[p.item_id][p.city] = p.sell_price_min;
-      });
-
-      // 5. Calculate profit for each target item
-      const results: RecommendationResult[] = [];
-      const analysisCity = fixedCity === "Global" ? undefined : fixedCity;
-
+      const allIds: string[] = [];
       filteredTargets.forEach(item => {
-        const result = calculateRecommendationProfit(item, priceMap, rrr, isPremium, analysisCity);
-        if (result && result.profit > 0) {
-          results.push(result);
-        }
+        allIds.push(item.id);
+        item.craftingRecipe?.forEach(req => allIds.push(req.id));
       });
+      const uniqueIds = [...new Set(allIds)];
 
-      // 6. Sort and Set
-      setRecommendations(results.sort((a, b) => b.profit - a.profit));
-      
+      // ── Step 1: Serve from cache instantly ──────────────────────────────
+      if (!forceRefresh) {
+        const { cached, staleIds } = getOrMarkStale(uniqueIds, cities, [1], TTL.PROFIT_SCANNER);
+        if (cached.length > 0) {
+          processAndSetResults(cached, currentScanId);
+          setCacheAge(new Date());
+          if (staleIds.length === 0) return;
+          setBackgroundScan(true);
+          try {
+            const fresh = await fetchPrices(staleIds, cities, [1], server);
+            if (currentScanId !== scanIdRef.current) return;
+            setPriceCacheBatch(fresh);
+            processAndSetResults([...cached.filter(c => !staleIds.includes(c.item_id)), ...fresh], currentScanId);
+            setCacheAge(new Date());
+          } catch {}
+          setBackgroundScan(false);
+          return;
+        }
+      }
+
+      // ── Step 2: Full fetch ───────────────────────────────────────────────
+      setLoading(true);
+      const data = await fetchPrices(uniqueIds, cities, [1], server);
+      if (currentScanId !== scanIdRef.current) return;
+      setPriceCacheBatch(data);
+      setCacheAge(new Date());
+      processAndSetResults(data, currentScanId);
     } catch (err) {
-      if (currentScanId === scanIdRef.current) {
-        setError("Failed to fetch recommendations. Try narrowing your filters.");
-      }
+      if (currentScanId === scanIdRef.current) setError("Failed to fetch recommendations. Try narrowing your filters.");
     } finally {
-      if (currentScanId === scanIdRef.current) {
-        setLoading(false);
-      }
+      if (currentScanId === scanIdRef.current) setLoading(false);
     }
   };
+
+  // Helper kept outside scan for processAndSetResults to use
+  const filteredTargets = getFilteredTargets();
 
   useEffect(() => {
     scanRecommendations();
@@ -202,8 +209,19 @@ export default function CraftingRecommendations({ server, isPremium }: CraftingR
             <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest whitespace-nowrap">RRR</label>
             <span className="text-xs font-black text-primary">{rrr.toFixed(1)}%</span>
             
+            {backgroundScan && (
+              <div className="flex items-center gap-1.5 ml-2 text-[9px] text-primary/40 uppercase tracking-widest">
+                <RefreshCw className="w-3 h-3 animate-spin" /> Updating...
+              </div>
+            )}
+            {cacheAge && !backgroundScan && (
+              <span className="ml-2 text-[9px] text-primary/20 uppercase tracking-widest">
+                {Math.round((Date.now() - cacheAge.getTime()) / 60000)}m ago
+              </span>
+            )}
+
             <button
-              onClick={scanRecommendations}
+              onClick={() => { clearAllPrices(); scanRecommendations(true); }}
               disabled={loading}
               className="ml-4 p-2 text-primary/60 hover:text-white transition-colors"
             >
@@ -224,7 +242,7 @@ export default function CraftingRecommendations({ server, isPremium }: CraftingR
         <div className="bg-red-500/10 border border-red-500/50 p-12 rounded-3xl text-center space-y-4">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
           <p className="text-red-500 font-bold">{error}</p>
-          <button onClick={scanRecommendations} className="bg-red-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors">Retry Scan</button>
+          <button onClick={() => scanRecommendations(true)} className="bg-red-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors">Retry Scan</button>
         </div>
       ) : recommendations.length === 0 ? (
         <div className="glass-panel p-20 rounded-3xl text-center border border-primary/5">

@@ -10,7 +10,7 @@ import CraftingCalculator from "../calculators/CraftingCalculator";
 import RefiningCalculator from "../calculators/RefiningCalculator";
 import CookingCalculator from "../calculators/CookingCalculator";
 import CraftingRecommendations from "./CraftingRecommendations";
-import Library from "./library/Library";
+import Library from "../library/Library";
 import { Loader2, Settings, Info, AlertCircle, Globe, Search, TrendingUp, Clock, Filter, Check, ChevronDown, Sparkles, DollarSign, Hammer, Pickaxe, ChefHat, BookOpen, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import itemsDataRaw from "../../data/items-lite.json";

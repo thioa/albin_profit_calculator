@@ -19,7 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatSilver, formatTimeAgo } from '../lib/economy-utils';
+import { formatSilver, formatTimeAgo } from '../../lib/economy-utils';
 
 export default function ProfileView({ 
   onSelectSimulation, 

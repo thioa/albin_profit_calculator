@@ -189,7 +189,7 @@ export default function MarketOpportunities({
 
       const topOpportunities = Object.values(deduplicated)
         .sort((a, b) => b.finalProfit - a.finalProfit)
-        .slice(0, 100);
+        .slice(0, 30); // Only verify top 30 — enough to fill any display limit
 
       if (currentScanId !== scanIdRef.current) return;
 
@@ -198,7 +198,7 @@ export default function MarketOpportunities({
 
       // Second pass: Verify top opportunities with historical data in chunks to avoid 429s
       const verifiedOpportunities: Opportunity[] = [];
-      const CHUNK_SIZE = 3;
+      const CHUNK_SIZE = 10; // Increased from 3 → 10 for faster parallel fetching
       
       for (let i = 0; i < topOpportunities.length; i += CHUNK_SIZE) {
         if (currentScanId !== scanIdRef.current) return;
@@ -216,7 +216,6 @@ export default function MarketOpportunities({
             
             if (history && history.length > 0 && history[0].data.length > 0) {
               const dataPoints = history[0].data;
-              // User wants average order with max past 3 days (72 hours)
               const recentPoints = dataPoints.slice(-72); 
               const avgPrice = recentPoints.reduce((sum, p) => sum + p.avg_price, 0) / recentPoints.length;
               const avgDailyVolume = recentPoints.reduce((sum, p) => sum + p.item_count, 0) / (recentPoints.length / 24 || 1);
@@ -245,9 +244,9 @@ export default function MarketOpportunities({
         
         verifiedOpportunities.push(...chunkResults);
         
-        // Small delay between chunks if we have many items
+        // Reduced delay between chunks: 300ms is enough to avoid 429s
         if (i + CHUNK_SIZE < topOpportunities.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
 

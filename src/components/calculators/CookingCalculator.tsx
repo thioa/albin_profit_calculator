@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChefHat } from 'lucide-react';
 import BaseCalculator from './BaseCalculator';
-import { AlbionServer, AlbionItem } from '../types/albion';
+import { AlbionServer, AlbionItem } from '../../types/albion';
 
 export default function CookingCalculator({ server, injectedItem, onItemInjected }: { server: AlbionServer; injectedItem?: any; onItemInjected?: () => void; }) {
   const filterPredicate = (item: AlbionItem) => {

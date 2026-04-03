@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import PriceChecker from "./components/features/PriceChecker";
+import AppShell from "./components/layout/AppShell";
 import { AlbionServer } from "./types/albion";
 import { WatchlistProvider } from "./contexts/WatchlistContext";
 
@@ -16,9 +16,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary">
       <WatchlistProvider server={server}>
-        <PriceChecker 
-          server={server} 
-          onServerChange={setServer} 
+        <AppShell
+          server={server}
+          onServerChange={setServer}
         />
       </WatchlistProvider>
     </div>

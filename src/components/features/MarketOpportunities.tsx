@@ -10,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useWatchlist } from "../../contexts/WatchlistContext";
 import { motion } from "motion/react";
 import { getOrMarkStale, setPriceCacheBatch, TTL, clearAllPrices } from "../../lib/price-cache";
+import { Badge, Label, Mono } from "../ui";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 
@@ -56,7 +57,10 @@ export default function MarketOpportunities({
   selectedCategories, selectedSubCategory, sortBy
 }: MarketOpportunitiesProps) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [displayLimit, setDisplayLimit] = useState(10);
+  const [displayLimit, setDisplayLimit] = useState(() => {
+    const saved = localStorage.getItem("albion_display_limit");
+    return saved !== null ? JSON.parse(saved) : 0; // 0 = show all
+  });
   const [loading, setLoading] = useState(false);
   const [backgroundScan, setBackgroundScan] = useState(false);
   const [cacheAge, setCacheAge] = useState<Date | null>(null);
@@ -130,8 +134,15 @@ export default function MarketOpportunities({
 
     const dedup: Record<string, Opportunity> = {};
     results.forEach(o => {
-      const key = `${o.itemId}-${o.buyCity}-${o.sellCity}`;
+      const key = `${o.itemId}-${o.buyCity}-${o.sellCity}-${o.quality}`;
       if (!dedup[key] || o.finalProfit > dedup[key].finalProfit) dedup[key] = o;
+    });
+    console.debug('[TopFlips] buildOpportunities:', {
+      rawApiEntries: data.length,
+      uniqueItems: Object.keys(grouped).length,
+      preDedup: results.length,
+      postDedup: Object.values(dedup).length,
+      topItems: Object.values(dedup).sort((a, b) => b.finalProfit - a.finalProfit).slice(0, 3).map(o => o.itemName + ' ' + o.finalProfit),
     });
     return Object.values(dedup).sort((a, b) => b.finalProfit - a.finalProfit);
   };
@@ -181,9 +192,9 @@ export default function MarketOpportunities({
   const scanOpportunities = async (forceRefresh = false) => {
     const currentScanId = ++scanIdRef.current;
     setError(null);
-    setDisplayLimit(10);
 
     const ids = buildItemList();
+    console.log('[TopFlips] scanOpportunities called, ids count:', ids.length, 'forceRefresh:', forceRefresh);
     if (ids.length === 0) { setOpportunities([]); return; }
 
     // Step 1: Serve from cache instantly (stale-while-revalidate)
@@ -192,6 +203,7 @@ export default function MarketOpportunities({
       if (cached.length > 0) {
         const fromCache = buildOpportunities(cached);
         if (currentScanId === scanIdRef.current && fromCache.length > 0) {
+          console.log('[TopFlips] cache hit, setting', fromCache.length, 'opportunities');
           setOpportunities(fromCache);
           setCacheAge(new Date());
         }
@@ -241,6 +253,11 @@ export default function MarketOpportunities({
     const timer = setTimeout(() => scanOpportunities(), 1200);
     return () => clearTimeout(timer);
   }, [server, selectedCities, qualities, maxAgeHours, hideSuspicious, allowedStatuses, preferredEnchantments, selectedCategories, selectedSubCategory]);
+
+  // Persist displayLimit
+  useEffect(() => {
+    localStorage.setItem("albion_display_limit", JSON.stringify(displayLimit));
+  }, [displayLimit]);
 
   // ─── Sort ─────────────────────────────────────────────────────────────────
   const sortedOpportunities = useMemo(() => {
@@ -299,15 +316,17 @@ export default function MarketOpportunities({
           {/* Showing count */}
           <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-xl border border-primary/10">
             <span className="text-primary/40 text-xs font-bold uppercase tracking-widest">Showing</span>
-            <span className="text-white font-black text-sm">{Math.min(displayLimit, sortedOpportunities.length)}</span>
+            <span className="text-white font-black text-sm">{displayLimit === 0 ? sortedOpportunities.length : Math.min(displayLimit, sortedOpportunities.length)}</span>
             <span className="text-primary/30 text-xs">of</span>
             <span className="text-primary font-black text-sm">{sortedOpportunities.length}</span>
             <div className="w-px h-4 bg-primary/10 mx-1" />
             <select value={displayLimit} onChange={e => setDisplayLimit(Number(e.target.value))}
               className="bg-transparent text-primary/60 text-xs font-bold uppercase tracking-widest focus:outline-none cursor-pointer hover:text-primary transition-colors">
+              <option value={0}>All</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
+              <option value={100}>100</option>
             </select>
           </div>
 
@@ -351,7 +370,7 @@ export default function MarketOpportunities({
       {/* Results */}
       {!loading && !error && opportunities.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
-          {sortedOpportunities.slice(0, displayLimit).map((opp, idx) => {
+          {(displayLimit === 0 ? sortedOpportunities : sortedOpportunities.slice(0, displayLimit)).map((opp, idx) => {
             const freshnessUI = getFreshnessUI(opp.freshness);
             const isSuspicious = opp.profitPercent > 100 || opp.verificationStatus === 'suspicious';
             const isVerified = opp.verificationStatus === 'verified';
@@ -386,11 +405,16 @@ export default function MarketOpportunities({
                           <Star className={`w-3 h-3 ${user?.watchlist.includes(opp.itemId) ? "fill-current" : ""}`} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[8px] font-mono text-primary/40 uppercase bg-white/5 px-1.5 py-0.5 rounded">{getQualityName(opp.quality)}</span>
-                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${isVerified ? "bg-green-500/10 text-green-400" : isSuspicious ? "bg-red-500/10 text-red-400" : "bg-white/5 text-gray-500"}`}>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <Badge variant="subtle" size="sm">{getQualityName(opp.quality)}</Badge>
+                        <Badge
+                          variant={isVerified ? 'success' : isSuspicious ? 'error' : 'default'}
+                          size="sm"
+                          dot={!isVerified && !isSuspicious}
+                          pulse={isSuspicious}
+                        >
                           {opp.verificationStatus || 'unknown'}
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -398,47 +422,47 @@ export default function MarketOpportunities({
                   {/* Route */}
                   <div className="flex items-center gap-3 w-64 shrink-0 bg-white/[0.03] border border-primary/10 rounded-xl px-4 py-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-[8px] text-primary/40 font-black uppercase tracking-widest mb-1">Buy</div>
-                      <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" /><span className="text-white font-bold text-xs truncate">{opp.buyCity}</span></div>
-                      <div className="font-mono text-xs text-primary font-bold mt-0.5">{formatSilver(opp.buyPrice).replace(' Silver', '')}</div>
-                      <div className="text-[8px] text-primary/30 flex items-center gap-1 mt-0.5"><Clock className="w-2.5 h-2.5" />{formatTimeAgo(opp.buyDate)}</div>
+                      <Label size="sm" color="primary" className="mb-1 block">Buy</Label>
+                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-info shrink-0" /><span className="text-white font-bold text-sm truncate">{opp.buyCity}</span></div>
+                      <Mono size="sm" weight="bold" className="text-primary mt-1">{formatSilver(opp.buyPrice).replace(' Silver', '')}</Mono>
+                      <div className="text-xs text-primary/40 flex items-center gap-1.5 mt-1"><Clock className="w-3 h-3" />{formatTimeAgo(opp.buyDate)}</div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-primary/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-primary/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                     <div className="flex-1 min-w-0 text-right">
-                      <div className="text-[8px] text-primary/40 font-black uppercase tracking-widest mb-1">Sell</div>
-                      <div className="flex items-center gap-1.5 justify-end"><span className="text-white font-bold text-xs truncate">{opp.sellCity}</span><div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" /></div>
-                      <div className="font-mono text-xs text-primary font-bold mt-0.5">{formatSilver(opp.sellPrice).replace(' Silver', '')}</div>
-                      <div className="text-[8px] text-primary/30 flex items-center gap-1 justify-end mt-0.5">{formatTimeAgo(opp.sellDate)}<Clock className="w-2.5 h-2.5" /></div>
+                      <Label size="sm" color="primary" className="mb-1 block">Sell</Label>
+                      <div className="flex items-center gap-2 justify-end"><span className="text-white font-bold text-sm truncate">{opp.sellCity}</span><div className="w-2 h-2 rounded-full bg-primary shrink-0" /></div>
+                      <Mono size="sm" weight="bold" className="text-primary mt-1">{formatSilver(opp.sellPrice).replace(' Silver', '')}</Mono>
+                      <div className="text-xs text-primary/40 flex items-center gap-1.5 justify-end mt-1">{formatTimeAgo(opp.sellDate)}<Clock className="w-3 h-3" /></div>
                     </div>
                   </div>
 
                   {/* Metrics */}
                   <div className="flex items-center gap-px flex-1 min-w-0">
-                    <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4">
-                      <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Volume</span>
-                      <div className="flex items-center gap-1.5"><TrendingUp className="w-3 h-3 text-blue-400/60" /><span className="text-sm font-mono text-on-surface font-bold">{opp.historicalCount ? opp.historicalCount.toLocaleString() : "—"}</span></div>
+                    <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4">
+                      <Label size="sm" color="primary">Volume</Label>
+                      <div className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-info/60" /><span className="text-sm font-mono text-white font-bold">{opp.historicalCount ? opp.historicalCount.toLocaleString() : "—"}</span></div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4">
-                      <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">ROI</span>
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-mono font-black ${isSuspicious ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                        <Zap className="w-3 h-3 fill-current opacity-60" />{opp.profitPercent.toFixed(1)}%
+                    <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4">
+                      <Label size="sm" color="primary">ROI</Label>
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-mono font-bold ${isSuspicious ? 'bg-error/10 text-error' : 'bg-info/10 text-info'}`}>
+                        <Zap className="w-4 h-4 fill-current opacity-70" />{opp.profitPercent.toFixed(1)}%
                       </div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4 group/fresh relative">
-                      <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Data Age</span>
+                    <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4 group/fresh relative">
+                      <Label size="sm" color="primary">Data Age</Label>
                       <div className={`flex items-center gap-1.5 cursor-help ${freshnessUI.color}`}>
-                        <freshnessUI.icon className="w-3.5 h-3.5" />
-                        <span className="text-xs font-black uppercase">{freshnessUI.label}</span>
+                        <freshnessUI.icon className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase">{freshnessUI.label}</span>
                       </div>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-52 p-3 bg-[#0a0a0b] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover/fresh:opacity-100 group-hover/fresh:visible transition-all z-50 pointer-events-none">
-                        <p className="text-[10px] text-primary/60">{freshnessUI.description}</p>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-52 p-3 bg-surface border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover/fresh:opacity-100 group-hover/fresh:visible transition-all z-50 pointer-events-none">
+                        <p className="text-xs text-primary/60">{freshnessUI.description}</p>
                       </div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center gap-1 pl-4">
-                      <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Net Profit</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-mono font-black text-green-400 tracking-tighter">{formatSilver(opp.finalProfit).replace(' Silver', '')}</span>
-                        <span className="text-[9px] font-black text-green-700 uppercase">SLV</span>
+                    <div className="flex-1 flex flex-col items-center gap-1.5 pl-4">
+                      <Label size="sm" color="primary">Net Profit</Label>
+                      <div className="flex items-baseline gap-1.5">
+                        <Mono size="2xl" weight="black" className="text-success">{formatSilver(opp.finalProfit).replace(' Silver', '')}</Mono>
+                        <span className="text-xs font-bold text-success/70 uppercase">SLV</span>
                       </div>
                     </div>
                   </div>
@@ -450,7 +474,7 @@ export default function MarketOpportunities({
       )}
 
       {/* Load More */}
-      {!loading && !error && opportunities.length > displayLimit && (
+      {!loading && !error && displayLimit > 0 && opportunities.length > displayLimit && (
         <div className="flex justify-center mt-6">
           <button onClick={() => setDisplayLimit(d => d + 20)}
             className="glass-panel px-6 py-3 rounded-xl border border-primary/20 hover:border-primary/50 text-white font-bold tracking-widest uppercase text-xs transition-all hover:bg-primary/10 flex items-center gap-2 group">

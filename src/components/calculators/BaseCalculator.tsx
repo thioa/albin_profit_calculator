@@ -44,8 +44,8 @@ const CITY_COLORS: Record<string, string> = {
   "Fort Sterling": "bg-blue-500/20 text-blue-300 border-blue-500/40",
   "Lymhurst":      "bg-green-500/20 text-green-300 border-green-500/40",
   "Bridgewatch":   "bg-orange-500/20 text-orange-300 border-orange-500/40",
-  "Martlock":      "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
-  "Thetford":      "bg-violet-500/20 text-violet-300 border-violet-500/40",
+  "Martlock":      "bg-primary/20 text-primary border-primary/40",
+  "Thetford":      "bg-primary/20 text-primary border-primary/40",
   "Caerleon":      "bg-red-500/20 text-red-300 border-red-500/40",
   "Brecilien":     "bg-teal-500/20 text-teal-300 border-teal-500/40",
 };
@@ -478,20 +478,20 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       {/* ─── Control Bar ─── */}
       <div className="flex flex-col gap-4 glass-panel p-5 rounded-3xl border border-primary/10 relative z-30">
         {/* Row 1: Search + Pull */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
             <SearchBar onSelect={addCraftItem} craftableOnly filterPredicate={filterPredicate} />
           </div>
 
           {/* Recent Items — always in top row */}
           <div className="relative group shrink-0">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-black/20 border border-primary/20 rounded-xl text-white hover:bg-black/60 transition-all text-sm font-bold whitespace-nowrap">
-              <History className="w-4 h-4 text-primary" />
-              Recent <ChevronDown className="w-3 h-3 text-primary/50" />
+            <button className="flex items-center gap-2 px-4 h-12 bg-black/20 border border-primary/20 rounded-xl text-white hover:bg-black/60 transition-all text-sm font-bold whitespace-nowrap">
+              <History className="w-5 h-5 text-primary" />
+              Recent <ChevronDown className="w-4 h-4 text-primary/50" />
             </button>
             <div className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
               {recentItems.length === 0 ? (
-                <div className="p-3 text-[11px] text-gray-600 italic text-center">No recent items yet</div>
+                <div className="p-3 text-sm text-primary/40 italic text-center">No recent items yet</div>
               ) : recentItems.map(({ item, prices: snap, sellPrices: snapSell }) => (
                 <button key={item.id}
                   onClick={() => {
@@ -505,12 +505,12 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                     });
                     setSellPrices(prev => ({ ...snapSell, ...prev }));
                   }}
-                  className="w-full flex items-center gap-2 p-2 hover:bg-white/5 rounded-lg text-left">
-                  <img src={item.icon} className="w-7 h-7" alt="" />
+                  className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg text-left min-h-12">
+                  <img src={item.icon} className="w-8 h-8" alt="" />
                   <div className="min-w-0">
-                    <div className="text-xs text-on-surface truncate font-bold">{item.name}</div>
+                    <div className="text-sm text-white truncate font-medium">{item.name}</div>
                     {snapSell[item.id] > 0 && (
-                      <div className="text-[9px] text-gray-600">Last sell: {snapSell[item.id].toLocaleString()}</div>
+                      <div className="text-xs text-primary/40">Last sell: {snapSell[item.id].toLocaleString()}</div>
                     )}
                   </div>
                 </button>
@@ -519,96 +519,98 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
           </div>
 
           <button onClick={pullPrices} disabled={loading}
-            className="flex items-center gap-2 px-5 py-3 bg-primary text-black font-black uppercase tracking-wider rounded-xl hover:bg-[#b8962d] transition-all disabled:opacity-50 shrink-0 text-sm">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            className="flex items-center gap-2 px-5 h-12 bg-primary text-black font-bold uppercase tracking-wider rounded-xl hover:brightness-110 transition-all disabled:opacity-50 shrink-0 text-sm shadow-[0_4px_12px_rgba(212,175,55,0.2)]">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
             Pull Market
           </button>
 
           {/* Auto-save status */}
           {user && craftList.length > 0 && (
-            <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${
+            <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all shrink-0 h-12 px-3 ${
               autoSaveStatus === 'saving' ? 'text-primary/60' :
-              autoSaveStatus === 'saved'  ? 'text-emerald-400' : 'text-primary/25'
+              autoSaveStatus === 'saved'  ? 'text-success' : 'text-primary/30'
             }`}>
-              {autoSaveStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" /> :
-               autoSaveStatus === 'saved'  ? <CheckIcon className="w-3 h-3" /> :
-               <Save className="w-3 h-3" />}
+              {autoSaveStatus === 'saving' ? <Loader2 className="w-5 h-5 animate-spin" /> :
+               autoSaveStatus === 'saved'  ? <CheckIcon className="w-5 h-5" /> :
+               <Save className="w-5 h-5" />}
               {autoSaveStatus === 'saving' ? 'Saving...' : autoSaveStatus === 'saved' ? 'Saved' : 'Auto-save On'}
             </div>
           )}
 
           {/* Finalize Plan button */}
           <button onClick={handleFinalize} disabled={craftList.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all disabled:opacity-30 shrink-0">
-            <Save className="w-3.5 h-3.5" /> Finalize Plan
+            className="flex items-center gap-2 px-4 h-12 bg-success/10 hover:bg-success/20 text-success border border-success/20 rounded-xl font-bold uppercase tracking-wider text-sm transition-all disabled:opacity-30 shrink-0">
+            <Save className="w-5 h-5" /> Finalize Plan
           </button>
         </div>
 
         {/* Row 2: City + RRR breakdown */}
-        <div className="flex flex-wrap items-end gap-4 pt-3 border-t border-primary/10">
+        <div className="flex flex-wrap items-end gap-4 pt-4 border-t border-primary/10">
           {/* Default city */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Default City</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-primary/50 uppercase tracking-wider">Default City</label>
             <div className="relative">
               <select value={globalCity}
                 onChange={e => { setGlobalCity(e.target.value as AlbionCity); setCityManuallySet(true); }}
-                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
+                className="h-12 bg-black/20 border border-primary/20 rounded-xl px-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none text-sm font-bold min-w-40">
                 {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
             </div>
           </div>
 
-          <div className="w-px h-10 bg-gray-800 self-end mb-1" />
+          <div className="w-px h-12 bg-primary/10 self-stretch mb-0.5" />
 
           {/* Station bonus */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Station Bonus</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-primary/50 uppercase tracking-wider">Station Bonus</label>
             <div className="relative">
               <select value={rrrConfig.stationBonus}
                 onChange={e => setRrrConfig(p => ({ ...p, stationBonus: Number(e.target.value) as 10 | 20 }))}
-                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
+                className="h-12 bg-black/20 border border-primary/20 rounded-xl px-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none text-sm font-bold min-w-40">
                 <option value={10}>Normal (10%)</option>
                 <option value={20}>Event / Premium (20%)</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
             </div>
           </div>
 
-          {/* City bonus */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">City Bonus</label>
-            <div className="relative">
-              <select value={rrrConfig.cityBonus ? "1" : "0"}
-                onChange={e => setRrrConfig(p => ({ ...p, cityBonus: e.target.value === "1" }))}
-                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
-                <option value="0">No City Bonus</option>
-                <option value="1">With City Bonus</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
-            </div>
+          {/* City Bonus Toggle */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-primary/50 uppercase tracking-wider">City Bonus</label>
+            <button
+              onClick={() => setRrrConfig(p => ({ ...p, cityBonus: !p.cityBonus }))}
+              className={`h-9 px-4 rounded-full font-bold text-xs transition-all ${
+                rrrConfig.cityBonus
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.25)]"
+                  : "bg-white/5 text-gray-500 border border-transparent"
+              }`}
+            >
+              {rrrConfig.cityBonus ? "On" : "Off"}
+            </button>
           </div>
 
-          {/* Focus */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Focus</label>
-            <div className="relative">
-              <select value={rrrConfig.focus ? "1" : "0"}
-                onChange={e => setRrrConfig(p => ({ ...p, focus: e.target.value === "1" }))}
-                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
-                <option value="0">Without Focus</option>
-                <option value="1">With Focus</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
-            </div>
+          {/* Focus Toggle */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-primary/50 uppercase tracking-wider">Focus</label>
+            <button
+              onClick={() => setRrrConfig(p => ({ ...p, focus: !p.focus }))}
+              className={`h-9 px-4 rounded-full font-bold text-xs transition-all ${
+                rrrConfig.focus
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.25)]"
+                  : "bg-white/5 text-gray-500 border border-transparent"
+              }`}
+            >
+              {rrrConfig.focus ? "On" : "Off"}
+            </button>
           </div>
 
           {/* Computed RRR Badge */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Total RRR</label>
-            <div className="flex items-center gap-2 bg-primary/10 border border-primary/40 rounded-xl px-4 py-2">
-              <RotateCcw className="w-3.5 h-3.5 text-primary" />
-              <span className="text-primary font-black text-sm">{rrr.toFixed(1)}%</span>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-primary/50 uppercase tracking-wider">Total RRR</label>
+            <div className="flex items-center gap-2 h-12 bg-primary/10 border border-primary/30 rounded-xl px-4">
+              <RotateCcw className="w-5 h-5 text-primary" />
+              <span className="text-primary font-bold text-base">{rrr.toFixed(1)}%</span>
             </div>
           </div>
 
@@ -630,16 +632,16 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
             <thead>
               <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-4 w-10" />
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest min-w-[180px]">Item</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest">Best City</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest">Recipe</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-20">Qty</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-36">
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider min-w-44">Item</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider">Best City</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider">Recipe</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center w-20">Qty</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center w-36">
                   Fee / craft
-                  <div className="text-[8px] text-gray-600 font-normal normal-case tracking-normal">(silver, editable)</div>
+                  <div className="text-xs text-primary/40 font-normal normal-case tracking-normal">(silver, editable)</div>
                 </th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-32">Sell Price</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-right w-32">Profit</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center w-32">Sell Price</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-right w-32">Profit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -663,7 +665,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           <img src={item.icon} alt={item.name} className="w-11 h-11 object-contain shrink-0" referrerPolicy="no-referrer" />
                           <div className="min-w-0">
                             <div className="text-sm font-bold text-white truncate">{item.name}</div>
-                            <div className="text-[10px] text-gray-600 font-mono tracking-tight truncate">{item.id}</div>
+                            <div className="text-xs text-primary/40 font-mono tracking-tight truncate">{item.id}</div>
                           </div>
                         </div>
                       </td>
@@ -673,18 +675,18 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                             <MapPin className="w-3 h-3" />{calc.bestCity}
                             <span className="text-[9px] opacity-70">+15%</span>
                           </div>
-                        ) : <span className="text-[10px] text-gray-600 italic">Any City</span>}
+                        ) : <span className="text-xs text-primary/40 italic">Any City</span>}
                       </td>
                       <td className="p-3">
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-2">
                           {recipe.length === 0
-                            ? <span className="text-[10px] text-gray-600 italic">No recipe</span>
+                            ? <span className="text-xs text-primary/40 italic">No recipe</span>
                             : recipe.map(req => {
                               const ri = itemsData.find(it => it.id === req.id);
                               return (
-                                <div key={req.id} className="flex items-center gap-1 bg-black/30 border border-primary/10 rounded-lg p-1 pr-2" title={ri?.name || req.id}>
-                                  <img src={ri?.icon || `https://render.albiononline.com/v1/item/${req.id}.png`} className="w-5 h-5" alt="" referrerPolicy="no-referrer" />
-                                  <span className="text-[10px] font-bold text-primary/60">{req.count * item.count}</span>
+                                <div key={req.id} className="flex items-center gap-1.5 bg-black/30 border border-primary/10 rounded-lg p-1.5 pr-2.5" title={ri?.name || req.id}>
+                                  <img src={ri?.icon || `https://render.albiononline.com/v1/item/${req.id}.png`} className="w-6 h-6" alt="" referrerPolicy="no-referrer" />
+                                  <span className="text-xs font-bold text-primary/60">{req.count * item.count}</span>
                                 </div>
                               );
                             })}
@@ -704,7 +706,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                             onChange={e => updateCraftItem(item.id, { stationFeeSilver: Math.max(0, Number(e.target.value)) })}
                             className="w-28 bg-black/20 border border-primary/20 rounded-lg py-2 px-3 text-center text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary" />
                           {item.count > 1 && item.stationFeeSilver > 0 && (
-                            <span className="text-[9px] text-gray-600">
+                            <span className="text-xs text-primary/40">
                               Total: {formatSilver(item.stationFeeSilver * item.count)}
                             </span>
                           )}
@@ -819,17 +821,17 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
             <thead>
               <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-3 w-10" />
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest min-w-[180px]">Item</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Bring</th>
-                <th className="p-3 text-[10px] font-black text-emerald-700 uppercase tracking-widest text-center">
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider min-w-44">Item</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center">Bring</th>
+                <th className="p-3 text-xs font-bold text-success uppercase tracking-wider text-center">
                   Return
-                  <div className="text-[8px] text-gray-600 font-normal normal-case tracking-normal">(uncheck if not returned)</div>
+                  <div className="text-xs text-primary/40 font-normal normal-case tracking-normal">(uncheck if not returned)</div>
                 </th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Have</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Net Buy</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Source City</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Unit Price</th>
-                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-right">Σ Cost</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center">Have</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center">Net Buy</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center">Source City</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-center">Unit Price</th>
+                <th className="p-3 text-xs font-bold text-primary/50 uppercase tracking-wider text-right">Σ Cost</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -860,7 +862,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           checked={!noRrrItems.has(item.id)}
                           onChange={() => toggleRrr(item.id)}
                           title={noRrrItems.has(item.id) ? "Not returned (click to enable)" : "Gets RRR cashback (click to disable)"}
-                          className="w-3.5 h-3.5 accent-emerald-500 cursor-pointer"
+                          className="w-5 h-5 accent-success cursor-pointer rounded focus:ring-2 focus:ring-success/50"
                         />
                         {!noRrrItems.has(item.id) ? (
                           <span className="text-sm font-mono font-bold text-emerald-400">+{Math.floor(item.returned)}</span>

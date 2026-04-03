@@ -9,9 +9,9 @@ import {
 import { formatSilver } from '../../lib/economy-utils';
 
 const TYPE_CONFIG = {
-  crafting: { label: 'Crafting', icon: Hammer, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
-  refining: { label: 'Refining', icon: Layers, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-  cooking: { label: 'Cooking', icon: ChefHat, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  crafting: { label: 'Crafting', icon: Hammer, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+  refining: { label: 'Refining', icon: Layers, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+  cooking: { label: 'Cooking', icon: ChefHat, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
 };
 
 function formatTimeAgo(iso: string) {
@@ -111,17 +111,17 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
 
       {/* Header */}
       <div className="glass-panel p-6 rounded-3xl border border-primary/10">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-2 flex-wrap">
           <div className="p-2 bg-primary/10 rounded-lg"><Hammer className="w-5 h-5 text-primary" /></div>
           <h2 className="text-xl font-black text-white uppercase italic tracking-wider">My Crafting Plans</h2>
           {user.role === 'superuser' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-[9px] font-black text-orange-400 uppercase tracking-widest">
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-xl text-xs font-bold text-orange-400 uppercase tracking-wider">
               Master
             </span>
           )}
           {isPremium && user.role !== 'superuser' && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[9px] font-black text-yellow-400 uppercase tracking-widest">
-              <Crown className="w-2.5 h-2.5" /> Premium
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs font-bold text-yellow-400 uppercase tracking-wider">
+              <Crown className="w-3.5 h-3.5" /> Premium
             </span>
           )}
         </div>
@@ -131,20 +131,20 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
 
         {/* Quota bar (free users only) */}
         {!isPremium && (
-          <div className="p-3 bg-black/30 rounded-2xl border border-primary/10 flex items-center justify-between gap-4">
+          <div className="p-4 bg-black/30 rounded-2xl border border-primary/10 flex items-center justify-between gap-4">
             <div className="flex-1">
-              <div className="flex justify-between mb-1.5">
-                <span className="text-[9px] font-black text-primary/30 uppercase tracking-widest">Plan Storage</span>
-                <span className="text-[9px] font-black text-primary/50">{finalisedCount} / {planLimit}</span>
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-bold text-primary/40 uppercase tracking-wider">Plan Storage</span>
+                <span className="text-xs font-bold text-primary/60">{finalisedCount} / {planLimit}</span>
               </div>
-              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${finalisedCount >= planLimit ? 'bg-red-500' : 'bg-primary'}`}
+              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${finalisedCount >= planLimit ? 'bg-error' : 'bg-primary'}`}
                   style={{ width: `${Math.min((finalisedCount / (planLimit as number)) * 100, 100)}%` }} />
               </div>
             </div>
             <button onClick={upgradeToPremium}
-              className="flex items-center gap-1.5 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0">
-              <Crown className="w-3 h-3" /> Upgrade
+              className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-400 rounded-xl text-sm font-bold uppercase tracking-wider transition-all shrink-0 h-12">
+              <Crown className="w-4 h-4" /> Upgrade
             </button>
           </div>
         )}
@@ -153,9 +153,9 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
           <input type="text" placeholder="Search plans..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full bg-black/20 border border-primary/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-primary/20 focus:outline-none focus:border-primary/40 transition-all" />
+            className="w-full h-12 bg-black/20 border border-primary/20 rounded-xl pl-10 pr-4 text-sm text-white placeholder:text-primary/30 focus:outline-none focus:border-primary/40 transition-all" />
         </div>
 
         <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-primary/10">

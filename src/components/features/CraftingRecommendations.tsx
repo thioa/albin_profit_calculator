@@ -197,8 +197,10 @@ export default function CraftingRecommendations({ server, isPremium }: CraftingR
             <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest whitespace-nowrap">Focus</label>
             <button
               onClick={() => setRrrConfig(prev => ({ ...prev, focus: !prev.focus }))}
-              className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                rrrConfig.focus ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-white/5 text-gray-500 border border-transparent"
+              className={`h-9 px-4 rounded-full font-bold text-xs transition-all ${
+                rrrConfig.focus
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.25)]"
+                  : "bg-white/5 text-gray-500 border border-transparent"
               }`}
             >
               {rrrConfig.focus ? "On" : "Off"}

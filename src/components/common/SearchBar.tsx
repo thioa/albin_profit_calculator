@@ -3,8 +3,9 @@ import Fuse from "fuse.js";
 import { Search, Loader2, Filter, ChevronDown } from "lucide-react";
 import itemsDataRaw from "../../data/items-lite.json";
 import { processItems } from "../../lib/item-utils";
+import { Input, Select, Label } from "../ui";
 
-const itemsData = processItems(itemsDataRaw as AlbionItem[]);
+const itemsData = processItems(itemsDataRaw as AlbionItem[]).filter(i => i.name && i.id);
 import { AlbionItem } from "../../types/albion";
 
 interface SearchBarProps {
@@ -100,23 +101,24 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
   };
 
   return (
-    <div className={`w-full space-y-3 relative ${isOpen ? "z-50" : "z-10"}`}>
+    <div className={`w-full relative ${isOpen ? "z-50" : "z-10"}`}>
       <div className="flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1" ref={containerRef}>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
+        <div className="relative flex-1 h-12" ref={containerRef}>
+          <div className="relative h-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
             <input
               type="text"
               value={query}
               onChange={handleSearch}
               onFocus={() => (query.length > 0 || selectedCategory) && setIsOpen(true)}
               placeholder="Search for an item (e.g. T4 Bag)..."
-              className="w-full glass-panel border border-primary/20 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              className="w-full h-12 glass-panel border border-primary/20 rounded-xl pl-12 pr-4 text-white text-sm font-medium placeholder:text-primary/30 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              aria-label="Search items"
             />
           </div>
 
           {isOpen && results.length > 0 && (
-            <div className="absolute z-50 w-full mt-2 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-y-auto max-h-[400px]">
+            <div className="absolute z-50 w-full mt-2 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-y-auto max-h-80">
               {results.map((item) => (
                 <button
                   key={item.id}
@@ -125,7 +127,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                     setQuery(item.name);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-primary/10 hover:translate-x-1 transition-all text-left border-b border-primary/10 last:border-0 group/item"
+                  className="w-full flex items-center gap-4 p-3 hover:bg-primary/10 hover:translate-x-1 transition-all text-left border-b border-primary/10 last:border-0 group/item min-h-12"
                 >
                   <img
                     src={item.icon}
@@ -135,7 +137,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                   />
                   <div>
                     <div className="text-white font-medium group-hover/item:text-primary transition-colors">{item.name}</div>
-                    <div className="text-[10px] text-primary/60 font-bold uppercase tracking-widest">
+                    <div className="text-xs text-primary/60 font-bold uppercase tracking-wider">
                       Tier {item.tier} {item.enchantment > 0 ? `.${item.enchantment}` : ""} • {item.category}
                     </div>
                   </div>
@@ -146,36 +148,38 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
         </div>
 
         <div className="flex gap-3">
-          <div className="relative min-w-[160px]">
+          <div className="relative min-w-40">
             <select
               value={selectedCategory}
               onChange={(e) => {
                 setSelectedCategory(e.target.value);
                 setSelectedSubCategory("");
               }}
-              className="w-full appearance-none glass-panel border border-primary/20 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm font-bold uppercase tracking-wider"
+              className="w-full h-12 appearance-none glass-panel border border-primary/20 rounded-xl pl-4 pr-10 text-white text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              aria-label="Filter by category"
             >
               <option value="">All Categories</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/60 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
           </div>
 
-          <div className="relative min-w-[160px]">
+          <div className="relative min-w-40">
             <select
               value={selectedSubCategory}
               onChange={(e) => setSelectedSubCategory(e.target.value)}
               disabled={!selectedCategory}
-              className="w-full appearance-none glass-panel border border-primary/20 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 appearance-none glass-panel border border-primary/20 rounded-xl pl-4 pr-10 text-white text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Filter by sub-category"
             >
               <option value="">All Sub-Cats</option>
               {subCategories.map(sub => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/60 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
           </div>
         </div>
       </div>

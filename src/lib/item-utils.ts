@@ -60,6 +60,7 @@ const PATTERNS = {
   tools: {
     id: /_TOOL_/,
     pick: /_PICK/,
+    axe: /_AXE/,
     sickle: /_SICKLE/,
     knife: /_KNIFE/
   }

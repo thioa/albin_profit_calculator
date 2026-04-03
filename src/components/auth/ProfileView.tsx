@@ -54,10 +54,8 @@ export default function ProfileView({
     <div className="space-y-6">
 
       {/* ── Hero Profile Card ── */}
-      <div className="glass-panel p-8 rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/8 to-transparent relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-          <User className="w-48 h-48 text-primary -mr-20 -mt-20 rotate-12" />
-        </div>
+      <div className="glass-panel p-8 rounded-3xl border border-primary/15 bg-linear-to-br from-primary/8 to-transparent relative overflow-hidden group">
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors pointer-events-none" />
 
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           {/* Avatar */}
@@ -66,8 +64,8 @@ export default function ProfileView({
               <span className="material-symbols-outlined text-primary text-5xl">account_circle</span>
             </div>
             {/* Role badge */}
-            <div className={`absolute -bottom-2 -right-2 flex items-center gap-1 px-2 py-1 rounded-xl border text-[9px] font-black uppercase tracking-widest shadow-lg ${roleCfg.bg} ${roleCfg.border} ${roleCfg.color}`}>
-              <RoleIcon className="w-2.5 h-2.5" /> {roleCfg.label}
+            <div className={`absolute -bottom-2 -right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold uppercase tracking-wider shadow-lg ${roleCfg.bg} ${roleCfg.border} ${roleCfg.color}`}>
+              <RoleIcon className="w-3.5 h-3.5" /> {roleCfg.label}
             </div>
           </div>
 
@@ -75,18 +73,18 @@ export default function ProfileView({
           <div className="flex-1 text-center md:text-left space-y-3">
             <div className="flex flex-col md:flex-row md:items-center gap-2">
               <h2 className="text-3xl font-black text-white uppercase tracking-tight">{user.username}</h2>
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest self-center ${subCfg.bg} ${subCfg.border} ${subCfg.color}`}>
-                <SubIcon className="w-3 h-3" /> {subCfg.label}
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider self-center ${subCfg.bg} ${subCfg.border} ${subCfg.color}`}>
+                <SubIcon className="w-3.5 h-3.5" /> {subCfg.label}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-[11px] text-primary/40 font-medium">
-              <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" />{user.email}</span>
-              <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3" />Joined {new Date(user.stats.joinDate).toLocaleDateString()}</span>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-primary/50 font-medium">
+              <span className="flex items-center gap-2"><Mail className="w-4 h-4" />{user.email}</span>
+              <span className="flex items-center gap-2"><Calendar className="w-4 h-4" />Joined {new Date(user.stats.joinDate).toLocaleDateString()}</span>
             </div>
 
             {/* Stats row */}
-            <div className="flex flex-wrap items-center gap-6 pt-1">
+            <div className="flex flex-wrap items-center gap-6 pt-2">
               {[
                 { label: 'Saved Plans', value: user.craftingPlans?.length || 0 },
                 { label: 'Watchlist', value: user.watchlist.length },
@@ -94,8 +92,8 @@ export default function ProfileView({
                 { label: 'Level', value: `Lv.${user.stats.contributorLevel}` },
               ].map(stat => (
                 <div key={stat.label} className="text-center md:text-left">
-                  <p className="text-[9px] text-primary/30 uppercase font-black tracking-widest">{stat.label}</p>
-                  <p className={`text-xl font-black ${stat.highlight ? 'text-emerald-400' : 'text-white'}`}>{stat.value}</p>
+                  <p className="text-xs text-primary/40 uppercase font-bold tracking-wider">{stat.label}</p>
+                  <p className={`text-xl font-black ${stat.highlight ? 'text-success' : 'text-white'}`}>{stat.value}</p>
                 </div>
               ))}
             </div>
@@ -116,7 +114,7 @@ export default function ProfileView({
 
       {/* ── Subscription Banner (free users only) ── */}
       {!isPremium && (
-        <div className="glass-panel p-5 rounded-2xl border border-yellow-500/10 bg-gradient-to-r from-yellow-500/5 to-transparent flex items-center justify-between gap-4">
+        <div className="glass-panel p-5 rounded-2xl border border-yellow-500/10 bg-linear-to-r from-yellow-500/5 to-transparent flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-500/10 rounded-xl">
               <Crown className="w-5 h-5 text-yellow-400" />
@@ -154,7 +152,7 @@ export default function ProfileView({
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="glass-panel p-6 rounded-3xl min-h-[360px]">
+      <div className="glass-panel p-6 rounded-3xl min-h-90">
         <AnimatePresence mode="wait">
 
           {/* Simulations */}
@@ -171,7 +169,7 @@ export default function ProfileView({
                   {user.savedSimulations.map(sim => (
                     <div key={sim.id} className="group p-4 bg-black/30 border border-primary/8 rounded-2xl hover:border-primary/30 transition-all">
                       <div className="flex items-center justify-between mb-3">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${sim.type === 'crafting' ? 'bg-indigo-500/10 text-indigo-400' : sim.type === 'refining' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary">
                           {sim.type}
                         </span>
                         <span className="text-[9px] text-primary/25">{formatTimeAgo(sim.timestamp)}</span>

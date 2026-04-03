@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { X, LogIn, UserPlus, AlertCircle, CheckCircle2, Eye, EyeOff, Mail, User, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Button, Input, Label, Card } from '../ui';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -82,58 +83,57 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="relative p-6 pt-5 space-y-3">
+          <form onSubmit={handleSubmit} className="relative p-6 pt-5 space-y-4">
 
             {/* Email */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/25" />
-                <input
-                  type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com" autoFocus autoComplete="email"
-                  className="w-full bg-black/40 border border-primary/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-medium placeholder:text-primary/20 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                />
-              </div>
-            </div>
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoFocus
+              autoComplete="email"
+              label="Email"
+              leftIcon={<Mail className="w-4 h-4" />}
+            />
 
             {/* Username (register only) */}
             <AnimatePresence>
               {mode === 'register' && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  className="space-y-1 overflow-hidden"
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
                 >
-                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">Display Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/25" />
-                    <input
-                      type="text" value={username} onChange={e => setUsername(e.target.value)}
-                      placeholder="Your crafter name" autoComplete="username"
-                      className="w-full bg-black/40 border border-primary/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-medium placeholder:text-primary/20 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                    />
-                  </div>
+                  <Input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="Your crafter name"
+                    autoComplete="username"
+                    label="Display Name"
+                    leftIcon={<User className="w-4 h-4" />}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Password */}
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-1">
-                Password {mode === 'register' && <span className="text-primary/25 normal-case font-normal tracking-normal">(min. 6 chars)</span>}
+              <label className="block text-xs font-bold text-primary/50 uppercase tracking-widest ml-1">
+                Password {mode === 'register' && <span className="text-primary/30 normal-case font-normal tracking-normal">(min. 6 chars)</span>}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/25" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="w-full bg-black/40 border border-primary/10 rounded-xl py-3 pl-10 pr-11 text-white text-sm font-medium placeholder:text-primary/20 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                  className="w-full bg-black/40 border border-primary/10 rounded-xl py-3 pl-10 pr-11 text-white text-sm font-medium placeholder:text-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-all"
                 />
                 <button type="button" onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors focus:outline-none">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -143,35 +143,38 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             <AnimatePresence mode="wait">
               {error && (
                 <motion.div key="err" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-2.5 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium">
+                  className="flex items-center gap-2.5 p-3 bg-error/10 border border-error/20 rounded-xl text-error text-xs font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
                 </motion.div>
               )}
               {success && (
                 <motion.div key="ok" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-2.5 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-medium">
+                  className="flex items-center gap-2.5 p-3 bg-success/10 border border-success/20 rounded-xl text-success text-xs font-medium">
                   <CheckCircle2 className="w-4 h-4 shrink-0" /> {success}
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Submit */}
-            <button type="submit" disabled={loading}
-              className="w-full mt-1 bg-primary hover:brightness-110 text-black font-black py-3.5 rounded-xl shadow-[0_6px_20px_rgba(212,175,55,0.25)] transition-all active:scale-[0.98] uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading
-                ? <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                : mode === 'login' ? <><LogIn className="w-4 h-4" /> Sign In</> : <><UserPlus className="w-4 h-4" /> Create Account</>
-              }
-            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              isLoading={loading}
+              leftIcon={loading ? undefined : mode === 'login' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            >
+              {mode === 'login' ? 'Sign In' : 'Create Account'}
+            </Button>
 
             {/* Switch mode */}
             <div className="text-center pt-1">
               {mode === 'login' ? (
-                <button type="button" onClick={() => switchMode('register')} className="text-primary/35 hover:text-primary text-xs transition-colors">
+                <button type="button" onClick={() => switchMode('register')} className="text-primary/40 hover:text-primary text-xs transition-colors">
                   Don't have an account? <span className="text-primary/60 font-bold">Register here</span>
                 </button>
               ) : (
-                <button type="button" onClick={() => switchMode('login')} className="text-primary/35 hover:text-primary text-xs transition-colors">
+                <button type="button" onClick={() => switchMode('login')} className="text-primary/40 hover:text-primary text-xs transition-colors">
                   Already have an account? <span className="text-primary/60 font-bold">Sign in</span>
                 </button>
               )}
@@ -179,7 +182,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           </form>
 
           <div className="px-6 pb-5 text-center">
-            <p className="text-[9px] text-primary/15 uppercase tracking-widest">
+            <p className="text-xs text-primary/20 uppercase tracking-widest">
               Local-First • Password Secured • No Server Required
             </p>
           </div>

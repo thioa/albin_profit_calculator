@@ -1,7 +1,7 @@
 import React from 'react';
 import { Package } from 'lucide-react';
 import BaseCalculator from './BaseCalculator';
-import { AlbionServer, AlbionItem } from '../types/albion';
+import { AlbionServer, AlbionItem } from '../../types/albion';
 
 export default function CraftingCalculator({ server, injectedItem, onItemInjected }: { server: AlbionServer; injectedItem?: any; onItemInjected?: () => void; }) {
   const filterPredicate = (item: AlbionItem) => {

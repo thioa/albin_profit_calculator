@@ -49,46 +49,48 @@ export default function CityFilter({ selectedCities, onChange }: CityFilterProps
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 glass-panel p-2 px-4 rounded-lg border border-primary/10 text-white hover:border-gray-600 transition-all min-w-[200px] justify-between"
+        aria-label="Filter by city"
+        aria-expanded={isOpen}
+        className="flex items-center gap-3 glass-panel p-2.5 px-4 rounded-xl border border-primary/10 text-white hover:border-primary/30 transition-all min-w-52 justify-between focus:outline-none focus:ring-2 focus:ring-primary/50"
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-primary/60 font-medium whitespace-nowrap">Cities:</span>
-          <span className="text-xs font-bold truncate">
+          <span className="text-primary/50 font-medium text-sm whitespace-nowrap">Cities:</span>
+          <span className="text-sm font-bold truncate">
             {selectedCities.length === ALBION_CITIES.length
               ? "All Cities"
               : `${selectedCities.length} Selected`}
           </span>
         </div>
-        <ChevronDown className={cn("w-4 h-4 text-primary/60 transition-transform", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-5 h-5 text-primary/50 transition-transform", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (
         <div className="absolute z-50 mt-2 w-64 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-hidden py-2">
           <button
             onClick={toggleAll}
-            className="w-full flex items-center gap-3 px-4 py-2 hover:bg-[#2a2a2a] transition-colors text-left border-b border-primary/10 mb-1"
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-primary/10 mb-1"
           >
             <div className={cn(
-              "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-              selectedCities.length === ALBION_CITIES.length ? "bg-primary border-primary" : "border-gray-600"
+              "w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0",
+              selectedCities.length === ALBION_CITIES.length ? "bg-primary border-primary" : "border-primary/40"
             )}>
-              {selectedCities.length === ALBION_CITIES.length && <Check className="w-3 h-3 text-black" />}
+              {selectedCities.length === ALBION_CITIES.length && <Check className="w-3.5 h-3.5 text-black" />}
             </div>
             <span className="text-sm font-bold text-white uppercase tracking-wider">Select All</span>
           </button>
-          
+
           <div className="max-h-60 overflow-y-auto">
             {ALBION_CITIES.map((city) => (
               <button
                 key={city}
                 onClick={() => toggleCity(city)}
-                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-[#2a2a2a] transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left min-h-11"
               >
                 <div className={cn(
-                  "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                  selectedCities.includes(city) ? "bg-primary border-primary" : "border-gray-600"
+                  "w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0",
+                  selectedCities.includes(city) ? "bg-primary border-primary" : "border-primary/40"
                 )}>
-                  {selectedCities.includes(city) && <Check className="w-3 h-3 text-black" />}
+                  {selectedCities.includes(city) && <Check className="w-3.5 h-3.5 text-black" />}
                 </div>
                 <span className="text-sm text-on-surface">{city}</span>
               </button>

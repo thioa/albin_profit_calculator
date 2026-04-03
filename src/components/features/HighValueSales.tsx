@@ -8,12 +8,13 @@ import {
 } from "../../lib/market-pulse-cache";
 import {
   TrendingUp, TrendingDown, Minus, Flame, RefreshCw, Filter,
-  MapPin, Package, ArrowUpRight, Search, Zap, Clock, BarChart2,
+  Package, ArrowUpRight, Search, Zap, Clock, BarChart2,
   ChevronRight, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import itemsDataRaw from "../../data/items-lite.json";
 import { processItems } from "../../lib/item-utils";
+import { Badge, Label, Mono } from "../ui";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 
@@ -44,7 +45,7 @@ function buildTargetItems(category: string, tier: string): { id: string; item: A
       }
       return true;
     })
-    .slice(0, 120) // Cap at 120 items
+    .slice(0, 2000) // Cap at 2000 items
     .map(item => ({ id: item.id, item }));
 }
 
@@ -201,53 +202,32 @@ export default function HighValueSales({ server, onTradeItem }: { server: Albion
         }
         return getDemandScore(b) - getDemandScore(a);
       })
-      .slice(0, 50);
+      .slice(0, 500);
   }, [entries, search, sortBy]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
-            <Flame className="w-6 h-6 text-orange-400" />
-            Market <span className="text-primary">Pulse</span>
-          </h3>
-          <p className="text-primary/60 text-sm mt-1">
-            Discover which items are trending by analyzing real transaction history across all cities.
+    <div className="space-y-4">
+      {/* Title row */}
+      <div>
+        <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+          <Flame className="w-6 h-6 text-orange-400" />
+          Market <span className="text-primary">Pulse</span>
+        </h3>
+        <p className="text-primary/60 text-sm mt-1">
+          Discover which items are trending by analyzing real transaction history across all cities.
+        </p>
+        {lastUpdated && (
+          <p className="text-primary/40 text-xs flex items-center gap-1.5 mt-1">
+            <Clock className="w-3.5 h-3.5" />
+            Cache updated {Math.round((Date.now() - lastUpdated.getTime()) / 60000)} min ago • 45-min TTL
           </p>
-          {lastUpdated && (
-            <p className="text-primary/30 text-[10px] flex items-center gap-1 mt-1">
-              <Clock className="w-3 h-3" />
-              Cache updated {Math.round((Date.now() - lastUpdated.getTime()) / 60000)} min ago • 45-min TTL
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          {scanning && (
-            <div className="flex items-center gap-2 glass-panel px-3 py-2 rounded-xl border border-primary/10">
-              <RefreshCw className="w-3.5 h-3.5 text-primary animate-spin" />
-              <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
-                {progress.current}/{progress.total}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={() => { clearAll(); setEntries([]); runScan(true); }}
-            disabled={scanning}
-            className="flex items-center gap-2 glass-panel px-4 py-2 rounded-xl border border-primary/10 text-primary/60 hover:text-white hover:border-primary/30 transition-all disabled:opacity-40 text-xs font-bold uppercase tracking-widest"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
-            Force Refresh
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         {/* Search */}
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative flex-1 min-w-45">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30" />
           <input
             type="text" placeholder="Search items..."
@@ -258,50 +238,81 @@ export default function HighValueSales({ server, onTradeItem }: { server: Albion
 
         {/* Category */}
         <select value={category} onChange={e => setCategory(e.target.value)}
-          className="glass-panel border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary/60 focus:outline-none cursor-pointer bg-black/20">
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          className="h-12 bg-black/20 border border-primary/20 rounded-xl px-4 text-white text-sm font-bold focus:outline-none cursor-pointer appearance-none min-w-32">
+          {CATEGORIES.map(c => <option key={c} value={c} style={{background: '#151a21'}}>{c}</option>)}
         </select>
 
         {/* Tier */}
         <select value={tier} onChange={e => setTier(e.target.value)}
-          className="glass-panel border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary/60 focus:outline-none cursor-pointer bg-black/20">
-          {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+          className="h-12 bg-black/20 border border-primary/20 rounded-xl px-4 text-white text-sm font-bold focus:outline-none cursor-pointer appearance-none min-w-24">
+          {TIERS.map(t => <option key={t} value={t} style={{background: '#151a21'}}>{t}</option>)}
         </select>
 
         {/* Time Range */}
-        <div className="flex glass-panel p-1 rounded-xl border border-primary/10 gap-0.5">
+        <div className="flex glass-panel p-1 rounded-xl border border-primary/10 gap-1 h-12">
           {([24, 48] as const).map(r => (
             <button key={r} onClick={() => setTimeRange(r)}
-              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeRange === r ? 'bg-primary text-black' : 'text-primary/40 hover:text-primary'}`}>
+              className={`px-4 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${timeRange === r ? 'bg-primary text-black' : 'text-primary/50 hover:text-primary'}`}>
               {r}H
             </button>
           ))}
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-2 glass-panel px-3 py-2 rounded-xl border border-primary/10">
-          <Filter className="w-3.5 h-3.5 text-primary/30" />
+        <div className="flex items-center gap-3 glass-panel px-4 py-2 rounded-xl border border-primary/10 h-12">
+          <Filter className="w-5 h-5 text-primary" />
           <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-            className="bg-transparent text-[10px] font-black text-primary/60 focus:outline-none cursor-pointer uppercase tracking-widest">
-            <option value="demand">Demand Score</option>
-            <option value="volume">Volume</option>
-            <option value="trend">Trend</option>
-            <option value="price">Avg Price</option>
+            className="bg-transparent text-primary text-sm font-bold focus:outline-none cursor-pointer appearance-none uppercase tracking-wider">
+            <option value="demand" style={{background: '#151a21'}}>Demand Score</option>
+            <option value="volume" style={{background: '#151a21'}}>Volume</option>
+            <option value="trend" style={{background: '#151a21'}}>Trend</option>
+            <option value="price" style={{background: '#151a21'}}>Avg Price</option>
           </select>
         </div>
+
+        {/* Divider */}
+        <div className="w-px h-12 bg-primary/10" />
+
+        {/* Showing count */}
+        <div className="flex items-center gap-3 glass-panel px-4 rounded-xl border border-primary/10 h-12">
+          <span className="text-primary/50 text-sm font-bold uppercase tracking-wider">Showing</span>
+          <span className="text-white font-bold text-base">{sorted.length}</span>
+          <span className="text-primary/40 text-sm">of</span>
+          <span className="text-primary font-bold text-base">{entries.length}</span>
+        </div>
+
+        {/* Scan progress */}
+        {scanning && (
+          <div className="flex items-center gap-2 glass-panel px-4 rounded-xl border border-primary/10 h-12">
+            <RefreshCw className="w-5 h-5 text-primary animate-spin" />
+            <span className="text-sm font-bold text-primary/60 uppercase tracking-wider">
+              {progress.current}/{progress.total}
+            </span>
+          </div>
+        )}
+
+        {/* Force Refresh */}
+        <button
+          onClick={() => { clearAll(); setEntries([]); runScan(true); }}
+          disabled={scanning}
+          className="flex items-center gap-2 glass-panel px-4 rounded-xl border border-primary/10 text-primary/60 hover:text-white hover:border-primary/30 transition-all disabled:opacity-40 text-sm font-bold uppercase tracking-wider h-12"
+        >
+          <RefreshCw className={`w-5 h-5 ${scanning ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {/* Progress bar (background scan) */}
       {scanning && (
-        <div className="space-y-1">
-          <div className="h-0.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="space-y-2">
+          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-primary rounded-full"
               animate={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
               transition={{ duration: 0.4 }}
             />
           </div>
-          <p className="text-[9px] text-primary/30 uppercase tracking-widest">
+          <p className="text-xs text-primary/40 uppercase tracking-wider">
             Background scan — showing cached results while loading...
           </p>
         </div>
@@ -324,77 +335,96 @@ export default function HighValueSales({ server, onTradeItem }: { server: Albion
               const item = itemsData.find(i => i.id === entry.itemId);
               if (!item) return null;
               const trendCfg = TREND_CONFIG[entry.trend];
-              const TrendIcon = trendCfg.icon;
               const demandScore = getDemandScore(entry);
 
               return (
                 <motion.div
                   key={entry.itemId}
                   layout
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  className="group glass-panel border border-primary/10 hover:border-primary/30 rounded-xl overflow-hidden transition-all duration-300"
+                  className={`group relative glass-panel border rounded-xl overflow-hidden transition-all duration-500 ${
+                    trendCfg.border.replace('border', 'border')
+                  } hover:border-primary/40`}
                 >
-                  <div className="p-4 flex flex-col lg:flex-row items-start lg:items-center gap-4">
-                    {/* Rank */}
-                    <div className="text-2xl font-black text-white/5 font-mono italic w-8 shrink-0 hidden lg:block">
-                      {(idx + 1).toString().padStart(2, '0')}
-                    </div>
+                  {/* Trend color bar */}
+                  <div className={`absolute top-0 left-0 w-1 h-full ${trendCfg.border.replace('border', 'bg')}`} />
 
+                  <div className="pl-5 pr-4 py-3 flex flex-row items-center gap-5">
                     {/* Item */}
-                    <div className="flex items-center gap-4 w-full lg:w-56 shrink-0">
+                    <div className="flex items-center gap-3 w-48 shrink-0">
                       <div className="relative shrink-0">
-                        <div className="bg-black/30 p-2.5 rounded-xl border border-primary/10 group-hover:border-primary/30 transition-all">
+                        <div className="glass-panel p-2.5 rounded-xl border border-primary/20 group-hover:border-primary/40 transition-all">
                           <img src={item.icon} alt={item.name} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-white font-bold text-sm truncate group-hover:text-primary transition-colors">{item.name}</h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[8px] font-mono text-primary/30 uppercase bg-white/5 px-1.5 py-0.5 rounded">T{item.tier}</span>
-                          <span className="text-[8px] font-mono text-primary/30 uppercase bg-white/5 px-1.5 py-0.5 rounded truncate">{item.category}</span>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-white font-bold text-sm truncate group-hover:text-primary transition-colors">{item.name}</h4>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Trend Badge */}
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${trendCfg.bg} ${trendCfg.border} shrink-0`}>
-                      <TrendIcon className={`w-4 h-4 ${trendCfg.color}`} />
-                      <div>
-                        <div className={`text-[10px] font-black uppercase tracking-widest ${trendCfg.color}`}>{trendCfg.label}</div>
-                        {entry.trendPercent !== 0 && (
-                          <div className={`text-[9px] font-bold ${trendCfg.color} opacity-70`}>
-                            {entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}% vs prev 12h
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <Badge variant="subtle" size="sm">T{item.tier}</Badge>
+                          <Badge
+                            variant={
+                              entry.trend === 'surging' ? 'warning' :
+                              entry.trend === 'rising' ? 'success' :
+                              entry.trend === 'cooling' ? 'error' :
+                              entry.trend === 'stable' ? 'info' : 'default'
+                            }
+                            size="sm"
+                          >
+                            {trendCfg.label}
+                          </Badge>
+                          {entry.trendPercent !== 0 && (
+                            <span className={`text-xs font-bold ${trendCfg.color}`}>
+                              {entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}%
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Metrics */}
-                    <div className="flex items-center gap-8 flex-1 min-w-0">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[8px] text-primary/30 font-black uppercase tracking-widest">Demand</span>
-                        <div className="flex items-center gap-1 text-primary font-black text-sm">
-                          <Zap className="w-3 h-3" />{demandScore.toLocaleString()}
+                    <div className="flex items-center gap-px flex-1 min-w-0">
+                      <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4">
+                        <Label size="sm" color="primary">Demand</Label>
+                        <div className="flex items-center gap-1.5 text-primary font-bold text-sm">
+                          <Zap className="w-4 h-4" />{demandScore.toLocaleString()}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center gap-0.5 border-l border-white/5 pl-8">
-                        <span className="text-[8px] text-primary/30 font-black uppercase tracking-widest">Volume</span>
-                        <div className="flex items-center gap-1">
-                          <Package className="w-3 h-3 text-blue-400/50" />
-                          <span className="text-on-surface font-bold text-sm">{entry.totalVolume.toLocaleString()}</span>
+                      <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4">
+                        <Label size="sm" color="primary">Volume</Label>
+                        <div className="flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-info/60" />
+                          <span className="text-white font-bold text-sm">{entry.totalVolume.toLocaleString()}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-center gap-0.5 border-l border-white/5 pl-8">
-                        <span className="text-[8px] text-primary/30 font-black uppercase tracking-widest">Avg Price</span>
-                        <span className="text-primary font-mono font-bold text-sm">{formatSilver(entry.avgPrice).replace(' Silver', '')}</span>
+                      <div className="flex-1 flex flex-col items-center gap-1.5 border-r border-white/5 px-4">
+                        <Label size="sm" color="primary">Avg Price</Label>
+                        <Mono size="sm" weight="bold" className="text-primary">{formatSilver(entry.avgPrice).replace(' Silver', '')}</Mono>
                       </div>
-                      <div className="flex flex-col items-center gap-0.5 border-l border-white/5 pl-8 hidden xl:flex">
-                        <span className="text-[8px] text-primary/30 font-black uppercase tracking-widest">Top City</span>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-primary/40" />
-                          <span className="text-white font-bold text-xs truncate max-w-[80px]">{entry.topCity || '—'}</span>
+                      <div className="flex-1 flex flex-col gap-2 pl-4 overflow-hidden">
+                        <Label size="sm" color="primary">City Prices</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {entry.perCity.map(({ city, avgPrice }) => {
+                            const cityColors: Record<string, string> = {
+                              Lymhurst: 'border-green-400/70 bg-green-500/10',
+                              'Fort Sterling': 'border-white/40 bg-white/5',
+                              Thetford: 'border-primary/40 bg-primary/10',
+                              Martlock: 'border-blue-400/70 bg-blue-500/10',
+                              Bridgewatch: 'border-orange-400/70 bg-orange-500/10',
+                              Caerleon: 'border-red-400/70 bg-red-500/10',
+                              Brecilien: 'border-pink-300/70 bg-pink-500/10',
+                            };
+                            const colorClass = cityColors[city] || 'border-white/20 bg-white/5';
+                            return (
+                              <div key={city} className={`flex items-center gap-1.5 rounded-lg px-2 py-1 border ${colorClass}`}>
+                                <span className="text-xs font-mono uppercase text-white/70">{city.slice(0, 3)}</span>
+                                <span className="text-xs text-primary font-mono font-bold">{formatSilver(avgPrice).replace(' Silver', '')}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -403,9 +433,9 @@ export default function HighValueSales({ server, onTradeItem }: { server: Albion
                     {onTradeItem && (
                       <button
                         onClick={() => onTradeItem(item)}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0 group/btn"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shrink-0 group/btn min-h-11"
                       >
-                        <ArrowUpRight className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
+                        <ArrowUpRight className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                         Trade
                       </button>
                     )}

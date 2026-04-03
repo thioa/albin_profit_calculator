@@ -22,9 +22,11 @@ import { useAuth, SavedSimulation } from "../../contexts/AuthContext";
 import { useWatchlist } from "../../contexts/WatchlistContext";
 import AuthModal from "../auth/AuthModal";
 import ProfileView from "../auth/ProfileView";
+import MyCrafting from "./MyCrafting";
+import { Clipboard } from "lucide-react";
 
 export default function PriceChecker({ server, onServerChange }: { server: AlbionServer; onServerChange?: (s: AlbionServer) => void }) {
-  const [activeTab, setActiveTab] = useState<"search" | "opportunities" | "high-value" | "recommendations" | "crafting" | "refining" | "cooking" | "library" | "profile" | "notifications">("search");
+  const [activeTab, setActiveTab] = useState<"search" | "opportunities" | "high-value" | "recommendations" | "crafting" | "refining" | "cooking" | "library" | "profile" | "notifications" | "my-crafting">("search");
   const { user, logout } = useAuth();
   const { notifications } = useWatchlist();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -281,7 +283,7 @@ export default function PriceChecker({ server, onServerChange }: { server: Albio
                 {user ? user.username : 'Sign In'}
               </p>
               <p className="text-[10px] text-primary/60 font-medium tracking-tighter truncate">
-                {user ? `Level ${user.stats.contributorLevel} Contributor` : 'Join the community'}
+                {user ? user.email : 'Join the community'}
               </p>
             </div>
           </div>
@@ -297,7 +299,7 @@ export default function PriceChecker({ server, onServerChange }: { server: Albio
           </button>
           
           <button onClick={() => setActiveTab("high-value")} className={`w-full flex items-center gap-4 py-3 px-6 font-headline text-sm uppercase tracking-widest transition-all ${activeTab === "high-value" ? "text-secondary border-l-4 border-secondary bg-secondary/5 font-bold" : "text-primary/60 hover:text-secondary hover:bg-primary/5"}`}>
-            <span className="material-symbols-outlined">payments</span> High Value
+            <span className="material-symbols-outlined">pulse_alert</span> Market Pulse
           </button>
 
           <button onClick={() => setActiveTab("recommendations")} className={`w-full flex items-center gap-4 py-3 px-6 font-headline text-sm uppercase tracking-widest transition-all ${activeTab === "recommendations" ? "text-secondary border-l-4 border-secondary bg-secondary/5 font-bold" : "text-primary/60 hover:text-secondary hover:bg-primary/5"}`}>
@@ -322,6 +324,10 @@ export default function PriceChecker({ server, onServerChange }: { server: Albio
 
           <button onClick={() => setActiveTab("library")} className={`w-full flex items-center gap-4 py-3 px-6 font-headline text-sm uppercase tracking-widest transition-all ${activeTab === "library" ? "text-secondary border-l-4 border-secondary bg-secondary/5 font-bold" : "text-primary/60 hover:text-secondary hover:bg-primary/5"}`}>
             <span className="material-symbols-outlined">menu_book</span> Library
+          </button>
+
+          <button onClick={() => setActiveTab("my-crafting")} className={`w-full flex items-center gap-4 py-3 px-6 font-headline text-sm uppercase tracking-widest transition-all ${activeTab === "my-crafting" ? "text-secondary border-l-4 border-secondary bg-secondary/5 font-bold" : "text-primary/60 hover:text-secondary hover:bg-primary/5"}`}>
+            <span className="material-symbols-outlined">assignment</span> My Crafting
           </button>
 
           <div className="py-2 px-6">
@@ -860,9 +866,18 @@ export default function PriceChecker({ server, onServerChange }: { server: Albio
             exit={{ opacity: 0, y: -20 }}
           >
             <ProfileView onSelectSimulation={(sim) => {
-              setActiveTab(sim.type);
+              setActiveTab(sim.type as any);
               window.dispatchEvent(new CustomEvent('albion_load_simulation', { detail: sim }));
             }} />
+          </motion.div>
+        ) : activeTab === "my-crafting" ? (
+          <motion.div
+            key="my-crafting"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <MyCrafting onNavigateToTab={(tab) => setActiveTab(tab as any)} />
           </motion.div>
         ) : activeTab === "notifications" ? (
           <motion.div

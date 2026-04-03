@@ -33,7 +33,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import itemsDataRaw from "../../data/items-lite.json";
 import { processItems } from "../../lib/item-utils";
-import { useAuth, SavedSimulation } from "../../contexts/AuthContext";
+import { useAuth, SavedSimulation, CraftingPlan } from "../../contexts/AuthContext";
 import { serializeState, deserializeState, compressCalculatorState, decompressCalculatorState } from "../../lib/share-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
@@ -118,9 +118,17 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     });
   }, [globalCity, overriddenCities]);
 
-  const { user, saveSimulation } = useAuth();
+  const { user, saveSimulation, saveCraftingPlan, updateCraftingPlan } = useAuth();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizeName, setFinalizeName] = useState('');
+  const [finalizeNote, setFinalizeNote] = useState('');
+  const [autoSaveDraftId, setAutoSaveDraftId] = useState<string | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Items excluded from RRR cashback (e.g. Treeheart, Tame Wild Boar)
+  const [noRrrItems, setNoRrrItems] = useState<Set<string>>(new Set());
 
   const lastInjectedRef = React.useRef<number | null>(null);
 
@@ -129,13 +137,12 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       if (lastInjectedRef.current !== injectedItem.timestamp) {
         lastInjectedRef.current = injectedItem.timestamp;
         addCraftItem(injectedItem.item);
-        if (onItemInjected) {
-          onItemInjected();
-        }
+        if (onItemInjected) onItemInjected();
       }
     }
   }, [injectedItem, storageKey]);
 
+  // ── Load plan/simulation from events ─────────────────────────────────────
   useEffect(() => {
     const handleLoadSim = (e: any) => {
       const sim = e.detail as SavedSimulation;
@@ -151,13 +158,27 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       }
     };
 
-    // Also check for URL hash state
+    // Load CraftingPlan (new system)
+    const handleLoadPlan = (e: any) => {
+      const plan = e.detail as CraftingPlan;
+      if (plan.type !== storageKey) return;
+      if (plan.craftList) setCraftList(plan.craftList);
+      if (plan.haveList) setHaveList(plan.haveList);
+      if (plan.manualPrices) setManualPrices(plan.manualPrices);
+      if (plan.sellPrices) setSellPrices(plan.sellPrices);
+      if (plan.sourceCities) setSourceCities(plan.sourceCities as any);
+      if (plan.globalCity) setGlobalCity(plan.globalCity as any);
+      if (plan.rrrConfig) setRrrConfig(plan.rrrConfig);
+      if (plan.noRrrItems) setNoRrrItems(new Set(plan.noRrrItems));
+      // Track the loaded plan as our auto-save target
+      if (plan.id) setAutoSaveDraftId(plan.id);
+    };
+
+    // URL hash state
     const hash = window.location.hash.replace('#', '');
     if (hash && hash.startsWith('state=')) {
-      const stateStr = hash.replace('state=', '');
-      const decoded = decompressCalculatorState(deserializeState(stateStr));
+      const decoded = decompressCalculatorState(deserializeState(hash.replace('state=', '')));
       if (decoded) {
-        // Apply state
         if (decoded.craftList) setCraftList(decoded.craftList);
         if (decoded.haveList) setHaveList(decoded.haveList);
         if (decoded.manualPrices) setManualPrices(decoded.manualPrices);
@@ -165,32 +186,90 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         if (decoded.sourceCities) setSourceCities(decoded.sourceCities);
         if (decoded.globalCity) setGlobalCity(decoded.globalCity);
         if (decoded.rrrConfig) setRrrConfig(decoded.rrrConfig);
-        // Clean URL
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
 
     window.addEventListener('albion_load_simulation', handleLoadSim);
-    return () => window.removeEventListener('albion_load_simulation', handleLoadSim);
+    window.addEventListener('albion_load_crafting_plan', handleLoadPlan);
+    return () => {
+      window.removeEventListener('albion_load_simulation', handleLoadSim);
+      window.removeEventListener('albion_load_crafting_plan', handleLoadPlan);
+    };
   }, [storageKey]);
 
-  const handleSave = () => {
-    if (!user) {
-      alert("Please login to save simulations.");
-      return;
-    }
-    const name = prompt("Enter a name for this simulation:", `My ${title} ${new Date().toLocaleDateString()}`);
-    if (name) {
-      saveSimulation({
-        name,
-        type: storageKey as any,
-        data: { craftList, haveList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig }
-      });
-    }
+  // ── Auto-Save (debounced 2s) ──────────────────────────────────────────────
+  const getCurrentPlanState = () => ({
+    craftList, haveList, manualPrices, sellPrices,
+    sourceCities: sourceCities as Record<string, string>,
+    globalCity, rrrConfig,
+    noRrrItems: Array.from(noRrrItems),
+  });
+
+  useEffect(() => {
+    if (!user || craftList.length === 0) return; // Don't auto-save empty state
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    setAutoSaveStatus('idle');
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      setAutoSaveStatus('saving');
+      const planState = getCurrentPlanState();
+
+      if (autoSaveDraftId) {
+        // Update existing draft
+        updateCraftingPlan(autoSaveDraftId, { ...planState, isDraft: true });
+      } else {
+        // Create new draft
+        const result = saveCraftingPlan({
+          name: `${title} Draft`,
+          type: storageKey as 'crafting' | 'refining' | 'cooking',
+          isDraft: true,
+          notes: '',
+          ...planState,
+        });
+        if (result.ok && result.planId) setAutoSaveDraftId(result.planId);
+      }
+
+      setTimeout(() => setAutoSaveStatus('saved'), 300);
+      setTimeout(() => setAutoSaveStatus('idle'), 2500);
+    }, 2000);
+
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [craftList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig, haveList, noRrrItems, user]);
+
+  // ── Finalize Plan (give it a proper name) ─────────────────────────────────
+  const handleFinalize = () => {
+    if (!user) { alert('Please login to save crafting plans.'); return; }
+    setFinalizeName(`My ${title} — ${new Date().toLocaleDateString()}`);
+    setFinalizeNote('');
+    setShowFinalizeModal(true);
   };
 
-  // Items excluded from RRR cashback (e.g. Treeheart, Tame Wild Boar)
-  const [noRrrItems, setNoRrrItems] = useState<Set<string>>(new Set());
+  const confirmFinalize = () => {
+    if (!finalizeName.trim()) return;
+    const planState = getCurrentPlanState();
+    if (autoSaveDraftId) {
+      updateCraftingPlan(autoSaveDraftId, { name: finalizeName, notes: finalizeNote, isDraft: false, ...planState });
+    } else {
+      const result = saveCraftingPlan({
+        name: finalizeName,
+        type: storageKey as 'crafting' | 'refining' | 'cooking',
+        isDraft: false,
+        notes: finalizeNote,
+        ...planState,
+      });
+      if (result.ok && result.planId) setAutoSaveDraftId(result.planId);
+    }
+    setShowFinalizeModal(false);
+  };
+
+  // Legacy simulation save
+  const handleSave = () => {
+    if (!user) { alert('Please login to save simulations.'); return; }
+    const name = prompt('Enter a name:', `My ${title} ${new Date().toLocaleDateString()}`);
+    if (name) saveSimulation({ name, type: storageKey as any, data: { craftList, haveList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig } });
+  };
 
   // Shopping list — Bring / Returned / Net
   const shoppingList = useMemo<ShoppingItem[]>(() => {
@@ -443,6 +522,25 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
             className="flex items-center gap-2 px-5 py-3 bg-primary text-black font-black uppercase tracking-wider rounded-xl hover:bg-[#b8962d] transition-all disabled:opacity-50 shrink-0 text-sm">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Pull Market
+          </button>
+
+          {/* Auto-save status */}
+          {user && craftList.length > 0 && (
+            <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${
+              autoSaveStatus === 'saving' ? 'text-primary/60' :
+              autoSaveStatus === 'saved'  ? 'text-emerald-400' : 'text-primary/25'
+            }`}>
+              {autoSaveStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" /> :
+               autoSaveStatus === 'saved'  ? <CheckIcon className="w-3 h-3" /> :
+               <Save className="w-3 h-3" />}
+              {autoSaveStatus === 'saving' ? 'Saving...' : autoSaveStatus === 'saved' ? 'Saved' : 'Auto-save On'}
+            </div>
+          )}
+
+          {/* Finalize Plan button */}
+          <button onClick={handleFinalize} disabled={craftList.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all disabled:opacity-30 shrink-0">
+            <Save className="w-3.5 h-3.5" /> Finalize Plan
           </button>
         </div>
 
@@ -876,6 +974,68 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
           <strong className="text-primary/60"> Default City</strong> auto-follows the item's best crafting city unless you manually change it.
         </p>
       </div>
+
+      {/* Not logged in notice */}
+      {!user && craftList.length > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/10 rounded-xl">
+          <Save className="w-4 h-4 text-primary/40 shrink-0" />
+          <p className="text-[10px] text-primary/40">
+            <strong className="text-primary/60">Sign in</strong> to enable auto-save and keep your crafting plans across sessions.
+          </p>
+        </div>
+      )}
+
+      {/* ── Finalize Plan Modal ── */}
+      <AnimatePresence>
+        {showFinalizeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowFinalizeModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92 }}
+              className="relative w-full max-w-md glass-panel rounded-3xl border border-primary/20 p-6 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <Save className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-tight">Finalize Plan</h3>
+                  <p className="text-xs text-primary/40">Give this plan a name to save it permanently.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Plan Name</label>
+                <input
+                  type="text" value={finalizeName} onChange={e => setFinalizeName(e.target.value)}
+                  autoFocus
+                  className="w-full bg-black/40 border border-primary/15 rounded-xl py-3 px-4 text-white text-sm font-bold placeholder:text-primary/20 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Notes <span className="text-primary/20 font-normal normal-case">(optional)</span></label>
+                <textarea
+                  value={finalizeNote} onChange={e => setFinalizeNote(e.target.value)}
+                  rows={2} placeholder="Remind yourself anything useful..."
+                  className="w-full bg-black/40 border border-primary/15 rounded-xl py-3 px-4 text-white text-sm placeholder:text-primary/20 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setShowFinalizeModal(false)}
+                  className="flex-1 py-3 bg-white/5 text-primary/40 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all">
+                  Cancel
+                </button>
+                <button onClick={confirmFinalize} disabled={!finalizeName.trim()}
+                  className="flex-1 py-3 bg-emerald-500 hover:brightness-110 text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+                  <Save className="w-3.5 h-3.5" /> Save Plan
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import PriceChecker from "./components/PriceChecker";
+import PriceChecker from "./components/features/PriceChecker";
 import { AlbionServer } from "./types/albion";
 import { WatchlistProvider } from "./contexts/WatchlistContext";
 

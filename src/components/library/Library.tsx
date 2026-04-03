@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { AlbionItem } from "../types/albion";
-import SearchBar from "./SearchBar";
+import { AlbionItem } from "../../types/albion";
+import SearchBar from "../common/SearchBar";
 import { BookOpen, Info, ArrowRight, Package, Calculator } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 

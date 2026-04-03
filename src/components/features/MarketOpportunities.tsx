@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { AlbionPrice, AlbionCity, AlbionServer, ItemQuality, AlbionItem } from "../types/albion";
-import { fetchPrices, fetchHistory } from "../lib/albion-api";
-import { calculateProfit, formatSilver, formatTimeAgo, getFreshnessLevel, getProfitPercentage, FreshnessLevel, getQualityName } from "../lib/economy-utils";
-import { HOT_ITEMS } from "../constants";
-import itemsDataRaw from "../data/items-lite.json";
-import { processItems } from "../lib/item-utils";
+import { AlbionPrice, AlbionCity, AlbionServer, ItemQuality, AlbionItem } from "../../types/albion";
+import { fetchPrices, fetchHistory } from "../../lib/albion-api";
+import { calculateProfit, formatSilver, formatTimeAgo, getFreshnessLevel, getProfitPercentage, FreshnessLevel, getQualityName } from "../../lib/economy-utils";
+import { HOT_ITEMS } from "../../config/constants";
+import itemsDataRaw from "../../data/items-lite.json";
+import { processItems } from "../../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 import { Loader2, RefreshCw, Info, Clock, ArrowRight, Zap, TrendingUp, AlertTriangle, ShieldCheck, Star, ShieldAlert } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
-import { useWatchlist } from "../contexts/WatchlistContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { useWatchlist } from "../../contexts/WatchlistContext";
 import { motion } from "motion/react";
 
 interface Opportunity {

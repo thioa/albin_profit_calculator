@@ -24,10 +24,17 @@ import {
   MapPin,
   RotateCcw,
   BarChart2,
+  Save,
+  Share2,
+  ExternalLink,
+  Copy,
+  Check as CheckIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import itemsDataRaw from "../data/items-lite.json";
 import { processItems } from "../lib/item-utils";
+import { useAuth, SavedSimulation } from "../contexts/AuthContext";
+import { serializeState, deserializeState, compressCalculatorState, decompressCalculatorState } from "../lib/share-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 
@@ -111,6 +118,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     });
   }, [globalCity, overriddenCities]);
 
+  const { user, saveSimulation } = useAuth();
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
   const lastInjectedRef = React.useRef<number | null>(null);
 
   useEffect(() => {
@@ -123,58 +134,63 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         }
       }
     }
-  }, [injectedItem, storageKey, globalCity, cityManuallySet, manualPrices, sellPrices]); // Dependencies for addCraftItem
+  }, [injectedItem, storageKey]);
 
-  const addCraftItem = (item: AlbionItem) => {
-    if (craftList.some(i => i.id === item.id)) return;
+  useEffect(() => {
+    const handleLoadSim = (e: any) => {
+      const sim = e.detail as SavedSimulation;
+      if (sim.type === storageKey) {
+        const data = sim.data;
+        if (data.craftList) setCraftList(data.craftList);
+        if (data.haveList) setHaveList(data.haveList);
+        if (data.manualPrices) setManualPrices(data.manualPrices);
+        if (data.sellPrices) setSellPrices(data.sellPrices);
+        if (data.sourceCities) setSourceCities(data.sourceCities);
+        if (data.globalCity) setGlobalCity(data.globalCity);
+        if (data.rrrConfig) setRrrConfig(data.rrrConfig);
+      }
+    };
 
-    // Auto-set globalCity to item's best crafting city (unless user locked it)
-    const bestCity = getCraftingCity(item.subCategory || "");
-    if (bestCity && !cityManuallySet) {
-      setGlobalCity(bestCity);
+    // Also check for URL hash state
+    const hash = window.location.hash.replace('#', '');
+    if (hash && hash.startsWith('state=')) {
+      const stateStr = hash.replace('state=', '');
+      const decoded = decompressCalculatorState(deserializeState(stateStr));
+      if (decoded) {
+        // Apply state
+        if (decoded.craftList) setCraftList(decoded.craftList);
+        if (decoded.haveList) setHaveList(decoded.haveList);
+        if (decoded.manualPrices) setManualPrices(decoded.manualPrices);
+        if (decoded.sellPrices) setSellPrices(decoded.sellPrices);
+        if (decoded.sourceCities) setSourceCities(decoded.sourceCities);
+        if (decoded.globalCity) setGlobalCity(decoded.globalCity);
+        if (decoded.rrrConfig) setRrrConfig(decoded.rrrConfig);
+        // Clean URL
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     }
 
-    setCraftList(prev => [...prev, {
-      id: item.id,
-      name: item.name,
-      count: 1,
-      icon: item.icon,
-      subCategory: item.subCategory || "",
-      stationFeeSilver: 0,
-    }]);
+    window.addEventListener('albion_load_simulation', handleLoadSim);
+    return () => window.removeEventListener('albion_load_simulation', handleLoadSim);
+  }, [storageKey]);
 
-    // Initialise ingredient source cities
-    const albionItem = itemsData.find(it => it.id === item.id);
-    if (albionItem?.craftingRecipe) {
-      const targetCity = (bestCity && !cityManuallySet) ? bestCity : globalCity;
-      setSourceCities(prev => {
-        const next = { ...prev };
-        for (const req of albionItem.craftingRecipe) {
-          if (!next[req.id]) next[req.id] = targetCity;
-        }
-        return next;
+  const handleSave = () => {
+    if (!user) {
+      alert("Please login to save simulations.");
+      return;
+    }
+    const name = prompt("Enter a name for this simulation:", `My ${title} ${new Date().toLocaleDateString()}`);
+    if (name) {
+      saveSimulation({
+        name,
+        type: storageKey as any,
+        data: { craftList, haveList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig }
       });
     }
-
-    // Snapshot current prices for easy recall
-    setRecentItems(prev => [
-      { item, prices: manualPrices, sellPrices },
-      ...prev.filter(e => e.item.id !== item.id)
-    ].slice(0, 10));
   };
 
   // Items excluded from RRR cashback (e.g. Treeheart, Tame Wild Boar)
   const [noRrrItems, setNoRrrItems] = useState<Set<string>>(new Set());
-  const toggleRrr = (id: string) =>
-    setNoRrrItems(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  const removeCraftItem = (id: string) => setCraftList(prev => prev.filter(i => i.id !== id));
-  const updateCraftItem = (id: string, u: Partial<CraftItem>) =>
-    setCraftList(prev => prev.map(i => i.id === id ? { ...i, ...u } : i));
 
   // Shopping list — Bring / Returned / Net
   const shoppingList = useMemo<ShoppingItem[]>(() => {
@@ -206,7 +222,98 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       });
     });
     return Object.values(map);
-  }, [craftList, haveList, rrr, sourceCities, globalCity]);
+  }, [craftList, haveList, rrr, sourceCities, globalCity, noRrrItems]);
+
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+
+  // Auto-fetch live prices for all items in shopping list
+  useEffect(() => {
+    if (shoppingList.length === 0) return;
+    
+    let isMounted = true;
+    const fetchAll = async () => {
+      const ids = shoppingList.map(i => i.id);
+      // We check all cities we're currently using plus global city
+      const cities = Array.from(new Set([...Object.values(sourceCities), globalCity]));
+      
+      try {
+        const data = await fetchPrices(ids, cities, [1], server);
+        if (!isMounted) return;
+        
+        const priceMap: Record<string, number> = {};
+        data.forEach(p => {
+          const key = `${p.item_id}_${p.city}`;
+          priceMap[key] = p.sell_price_min;
+        });
+        setLivePrices(priceMap);
+      } catch (e) {
+        console.error("Live price fetch failed", e);
+      }
+    };
+
+    fetchAll();
+    const interval = setInterval(fetchAll, 60000); // Update every minute
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [shoppingList.length, server, globalCity, sourceCities]);
+
+  const toggleRrr = (id: string) =>
+    setNoRrrItems(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const removeCraftItem = (id: string) => setCraftList(prev => prev.filter(i => i.id !== id));
+  const updateCraftItem = (id: string, u: Partial<CraftItem>) =>
+    setCraftList(prev => prev.map(i => i.id === id ? { ...i, ...u } : i));
+
+  const addCraftItem = (item: AlbionItem) => {
+    let added = true;
+    setCraftList(prev => {
+      if (prev.some(i => i.id === item.id)) {
+        added = false;
+        return prev;
+      }
+      return [...prev, {
+        id: item.id,
+        name: item.name,
+        count: 1,
+        icon: item.icon,
+        subCategory: item.subCategory || "",
+        stationFeeSilver: 0,
+      }];
+    });
+
+    if (!added) return;
+
+    // Auto-set globalCity to item's best crafting city (unless user locked it)
+    const bestCity = getCraftingCity(item.subCategory || "");
+    if (bestCity && !cityManuallySet) {
+      setGlobalCity(bestCity);
+    }
+
+    // Initialise ingredient source cities
+    const albionItem = itemsData.find(it => it.id === item.id);
+    if (albionItem?.craftingRecipe) {
+      const targetCity = (bestCity && !cityManuallySet) ? bestCity : globalCity;
+      setSourceCities(prev => {
+        const next = { ...prev };
+        for (const req of albionItem.craftingRecipe) {
+          if (!next[req.id]) next[req.id] = targetCity;
+        }
+        return next;
+      });
+    }
+
+    // Snapshot current prices for easy recall
+    setRecentItems(prev => [
+      { item, prices: manualPrices, sellPrices },
+      ...prev.filter(e => e.item.id !== item.id)
+    ].slice(0, 10));
+  };
 
   // Pull market prices (crafted items + ingredients across all cities)
   const pullPrices = async () => {
@@ -274,8 +381,23 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
 
+      {/* ─── Page Header ─── */}
+      <div className="glass-panel p-5 rounded-3xl border border-primary/10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            {icon}
+          </div>
+          <h2 className="text-xl font-black text-white uppercase italic tracking-wider">{title}</h2>
+        </div>
+        <p className="text-primary/60 text-sm">
+          {storageKey === 'crafting' ? 'Calculate crafting profitability by accounting for ingredient costs, resource return rates (RRR), and city bonuses.' : 
+           storageKey === 'refining' ? 'Optimize your refining process. Compare raw material costs against refined outputs with localized city bonuses.' : 
+           'Plan your cooking sessions. Track ingredient requirements and calculate net profit after taxes and fees for consumables.'}
+        </p>
+      </div>
+
       {/* ─── Control Bar ─── */}
-      <div className="flex flex-col gap-4 bg-[#1e1e1e] p-5 rounded-2xl border border-gray-800">
+      <div className="flex flex-col gap-4 glass-panel p-5 rounded-3xl border border-primary/10 relative z-30">
         {/* Row 1: Search + Pull */}
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -284,11 +406,11 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
           {/* Recent Items — always in top row */}
           <div className="relative group shrink-0">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-black/40 border border-gray-700 rounded-xl text-white hover:bg-black/60 transition-all text-sm font-bold whitespace-nowrap">
-              <History className="w-4 h-4 text-[#D4AF37]" />
-              Recent <ChevronDown className="w-3 h-3 text-gray-500" />
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-black/20 border border-primary/20 rounded-xl text-white hover:bg-black/60 transition-all text-sm font-bold whitespace-nowrap">
+              <History className="w-4 h-4 text-primary" />
+              Recent <ChevronDown className="w-3 h-3 text-primary/50" />
             </button>
-            <div className="absolute top-full right-0 mt-2 w-64 bg-[#1e1e1e] border border-gray-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
+            <div className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
               {recentItems.length === 0 ? (
                 <div className="p-3 text-[11px] text-gray-600 italic text-center">No recent items yet</div>
               ) : recentItems.map(({ item, prices: snap, sellPrices: snapSell }) => (
@@ -307,7 +429,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                   className="w-full flex items-center gap-2 p-2 hover:bg-white/5 rounded-lg text-left">
                   <img src={item.icon} className="w-7 h-7" alt="" />
                   <div className="min-w-0">
-                    <div className="text-xs text-gray-300 truncate font-bold">{item.name}</div>
+                    <div className="text-xs text-on-surface truncate font-bold">{item.name}</div>
                     {snapSell[item.id] > 0 && (
                       <div className="text-[9px] text-gray-600">Last sell: {snapSell[item.id].toLocaleString()}</div>
                     )}
@@ -318,24 +440,24 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
           </div>
 
           <button onClick={pullPrices} disabled={loading}
-            className="flex items-center gap-2 px-5 py-3 bg-[#D4AF37] text-black font-black uppercase tracking-wider rounded-xl hover:bg-[#b8962d] transition-all disabled:opacity-50 shrink-0 text-sm">
+            className="flex items-center gap-2 px-5 py-3 bg-primary text-black font-black uppercase tracking-wider rounded-xl hover:bg-[#b8962d] transition-all disabled:opacity-50 shrink-0 text-sm">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Pull Market
           </button>
         </div>
 
         {/* Row 2: City + RRR breakdown */}
-        <div className="flex flex-wrap items-end gap-4 pt-3 border-t border-gray-800">
+        <div className="flex flex-wrap items-end gap-4 pt-3 border-t border-primary/10">
           {/* Default city */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Default City</label>
+            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Default City</label>
             <div className="relative">
               <select value={globalCity}
                 onChange={e => { setGlobalCity(e.target.value as AlbionCity); setCityManuallySet(true); }}
-                className="bg-black/40 border border-gray-700 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37] appearance-none text-sm font-bold">
+                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
                 {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
             </div>
           </div>
 
@@ -343,52 +465,52 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
           {/* Station bonus */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Station Bonus</label>
+            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Station Bonus</label>
             <div className="relative">
               <select value={rrrConfig.stationBonus}
                 onChange={e => setRrrConfig(p => ({ ...p, stationBonus: Number(e.target.value) as 10 | 20 }))}
-                className="bg-black/40 border border-gray-700 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37] appearance-none text-sm font-bold">
+                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
                 <option value={10}>Normal (10%)</option>
                 <option value={20}>Event / Premium (20%)</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
             </div>
           </div>
 
           {/* City bonus */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">City Bonus</label>
+            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">City Bonus</label>
             <div className="relative">
               <select value={rrrConfig.cityBonus ? "1" : "0"}
                 onChange={e => setRrrConfig(p => ({ ...p, cityBonus: e.target.value === "1" }))}
-                className="bg-black/40 border border-gray-700 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37] appearance-none text-sm font-bold">
+                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
                 <option value="0">No City Bonus</option>
                 <option value="1">With City Bonus</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
             </div>
           </div>
 
           {/* Focus */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Focus</label>
+            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Focus</label>
             <div className="relative">
               <select value={rrrConfig.focus ? "1" : "0"}
                 onChange={e => setRrrConfig(p => ({ ...p, focus: e.target.value === "1" }))}
-                className="bg-black/40 border border-gray-700 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37] appearance-none text-sm font-bold">
+                className="bg-black/20 border border-primary/20 rounded-xl py-2 px-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none text-sm font-bold">
                 <option value="0">Without Focus</option>
                 <option value="1">With Focus</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/60 w-3 h-3 pointer-events-none" />
             </div>
           </div>
 
           {/* Computed RRR Badge */}
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Total RRR</label>
-            <div className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 rounded-xl px-4 py-2">
-              <RotateCcw className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span className="text-[#D4AF37] font-black text-sm">{rrr.toFixed(1)}%</span>
+            <label className="text-[9px] font-black text-primary/50 uppercase tracking-widest">Total RRR</label>
+            <div className="flex items-center gap-2 bg-primary/10 border border-primary/40 rounded-xl px-4 py-2">
+              <RotateCcw className="w-3.5 h-3.5 text-primary" />
+              <span className="text-primary font-black text-sm">{rrr.toFixed(1)}%</span>
             </div>
           </div>
 
@@ -405,21 +527,21 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
           {icon}
           <h3 className="text-lg font-black text-white uppercase tracking-wider italic">{title}</h3>
         </div>
-        <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl overflow-hidden overflow-x-auto">
+        <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-black/40 border-b border-gray-800">
+              <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-4 w-10" />
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest min-w-[180px]">Item</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">Best City</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">Recipe</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-20">Qty</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-36">
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest min-w-[180px]">Item</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest">Best City</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest">Recipe</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-20">Qty</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-36">
                   Fee / craft
                   <div className="text-[8px] text-gray-600 font-normal normal-case tracking-normal">(silver, editable)</div>
                 </th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-32">Sell Price</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right w-32">Profit</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center w-32">Sell Price</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-right w-32">Profit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -449,7 +571,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                       </td>
                       <td className="p-3">
                         {calc.bestCity ? (
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-gray-300 border-gray-700"}`}>
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-on-surface border-primary/20"}`}>
                             <MapPin className="w-3 h-3" />{calc.bestCity}
                             <span className="text-[9px] opacity-70">+15%</span>
                           </div>
@@ -462,9 +584,9 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                             : recipe.map(req => {
                               const ri = itemsData.find(it => it.id === req.id);
                               return (
-                                <div key={req.id} className="flex items-center gap-1 bg-black/30 border border-gray-800 rounded-lg p-1 pr-2" title={ri?.name || req.id}>
+                                <div key={req.id} className="flex items-center gap-1 bg-black/30 border border-primary/10 rounded-lg p-1 pr-2" title={ri?.name || req.id}>
                                   <img src={ri?.icon || `https://render.albiononline.com/v1/item/${req.id}.png`} className="w-5 h-5" alt="" referrerPolicy="no-referrer" />
-                                  <span className="text-[10px] font-bold text-gray-400">{req.count * item.count}</span>
+                                  <span className="text-[10px] font-bold text-primary/60">{req.count * item.count}</span>
                                 </div>
                               );
                             })}
@@ -474,7 +596,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                         <div className="flex justify-center">
                           <input type="number" value={item.count}
                             onChange={e => updateCraftItem(item.id, { count: Math.max(1, Number(e.target.value)) })}
-                            className="w-16 bg-black/40 border border-gray-700 rounded-lg py-2 px-2 text-center text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37]" />
+                            className="w-16 bg-black/20 border border-primary/20 rounded-lg py-2 px-2 text-center text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                       </td>
                       <td className="p-3">
@@ -482,7 +604,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           <input type="number" value={item.stationFeeSilver || ""}
                             placeholder="0"
                             onChange={e => updateCraftItem(item.id, { stationFeeSilver: Math.max(0, Number(e.target.value)) })}
-                            className="w-28 bg-black/40 border border-gray-700 rounded-lg py-2 px-3 text-center text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37]" />
+                            className="w-28 bg-black/20 border border-primary/20 rounded-lg py-2 px-3 text-center text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary" />
                           {item.count > 1 && item.stationFeeSilver > 0 && (
                             <span className="text-[9px] text-gray-600">
                               Total: {formatSilver(item.stationFeeSilver * item.count)}
@@ -495,8 +617,8 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           <input type="number" value={sellPrices[item.id] || ""}
                             placeholder="Set price"
                             onChange={e => setSellPrices(prev => ({ ...prev, [item.id]: Number(e.target.value) }))}
-                            className={`w-28 bg-black/40 border rounded-lg py-2 px-3 text-center text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#D4AF37] ${
-                              !sellPrices[item.id] ? "border-yellow-500/30 text-yellow-500/80 placeholder:text-yellow-700/50" : "border-gray-700 text-white"
+                            className={`w-28 bg-black/20 border rounded-lg py-2 px-3 text-center text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary ${
+                              !sellPrices[item.id] ? "border-yellow-500/30 text-yellow-500/80 placeholder:text-yellow-700/50" : "border-primary/20 text-white"
                             }`} />
                         </div>
                       </td>
@@ -514,7 +636,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
               </AnimatePresence>
               {craftList.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-gray-500 italic text-sm">
+                  <td colSpan={8} className="p-12 text-center text-primary/50 italic text-sm">
                     Search for a craftable item above to get started.
                   </td>
                 </tr>
@@ -528,17 +650,17 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       {hasCityPrices && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 px-1">
-            <BarChart2 className="w-5 h-5 text-[#D4AF37]" />
+            <BarChart2 className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-black text-white uppercase tracking-wider italic">Best Market to Sell</h3>
-            <span className="text-xs text-gray-500 italic ml-1">— highest price is highlighted</span>
+            <span className="text-xs text-primary/50 italic ml-1">— highest price is highlighted</span>
           </div>
-          <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl overflow-hidden overflow-x-auto">
+          <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="bg-black/40 border-b border-gray-800">
-                  <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest min-w-[180px]">Item</th>
+                <tr className="bg-black/20 border-b border-primary/10">
+                  <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest min-w-[180px]">Item</th>
                   {CITIES.map(city => (
-                    <th key={city} className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">
+                    <th key={city} className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">
                       <div className={`inline-block px-2 py-1 rounded-md border text-[9px] ${CITY_COLORS[city] ?? ""}`}>{city}</div>
                     </th>
                   ))}
@@ -565,7 +687,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           <td key={city} className="p-3 text-center">
                             {price > 0 ? (
                               <div className={`inline-flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg font-mono text-xs font-bold ${
-                                isBest ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300" : "text-gray-400"
+                                isBest ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300" : "text-primary/60"
                               }`}>
                                 {isBest && <TrendingUp className="w-3 h-3" />}
                                 {formatSilver(price)}
@@ -588,28 +710,28 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       {/* ─── Shopping List ─── */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 px-1">
-          <Plus className="w-5 h-5 text-[#D4AF37]" />
+          <Plus className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-black text-white uppercase tracking-wider italic">Shopping List</h3>
-          <span className="text-xs text-gray-500 italic ml-1">
+          <span className="text-xs text-primary/50 italic ml-1">
             — bring full amount, get <span className="text-emerald-400 font-bold">{rrr.toFixed(1)}% back</span> after crafting
           </span>
         </div>
-        <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl overflow-hidden overflow-x-auto">
+        <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-black/40 border-b border-gray-800">
+              <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-3 w-10" />
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest min-w-[180px]">Item</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Bring</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest min-w-[180px]">Item</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Bring</th>
                 <th className="p-3 text-[10px] font-black text-emerald-700 uppercase tracking-widest text-center">
                   Return
                   <div className="text-[8px] text-gray-600 font-normal normal-case tracking-normal">(uncheck if not returned)</div>
                 </th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Have</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Net Buy</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Source City</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Unit Price</th>
-                <th className="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Σ Cost</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Have</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Net Buy</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Source City</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-center">Unit Price</th>
+                <th className="p-3 text-[10px] font-black text-primary/50 uppercase tracking-widest text-right">Σ Cost</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -621,7 +743,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                     <td className="p-3">
                       {item.isCraftable && (
                         <button onClick={() => { const ai = itemsData.find(it => it.id === item.id); if (ai) addCraftItem(ai); }}
-                          className="p-2 bg-black/40 border border-gray-800 rounded-lg text-gray-400 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all" title="Craft this ingredient">
+                          className="p-2 bg-black/20 border border-primary/10 rounded-lg text-primary/60 hover:text-primary hover:border-primary transition-all" title="Craft this ingredient">
                           <ArrowUp className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -653,10 +775,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                       <div className="flex justify-center">
                         <input type="number" value={item.have}
                           onChange={e => setHaveList(prev => ({ ...prev, [item.id]: Number(e.target.value) }))}
-                          className="w-16 bg-black/40 border border-gray-700 rounded-lg py-1.5 px-2 text-center text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#D4AF37]" />
+                          className="w-16 bg-black/20 border border-primary/20 rounded-lg py-1.5 px-2 text-center text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary" />
                       </div>
                     </td>
-                    <td className="p-3 text-center"><span className="text-sm font-mono font-bold text-[#D4AF37]">{netBuy}</span></td>
+                    <td className="p-3 text-center"><span className="text-sm font-mono font-bold text-primary">{netBuy}</span></td>
                     <td className="p-3">
                       <div className="flex justify-center">
                         <div className="relative">
@@ -666,15 +788,15 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                               setSourceCities(prev => ({ ...prev, [item.id]: c }));
                               setOverriddenCities(prev => new Set(prev).add(item.id));
                             }}
-                            className="bg-black/40 border border-gray-700 rounded-lg py-1.5 pl-2 pr-7 text-[11px] font-bold text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] appearance-none">
+                            className="bg-black/20 border border-primary/20 rounded-lg py-1.5 pl-2 pr-7 text-[11px] font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary appearance-none">
                             {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
-                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 w-3 h-3 pointer-events-none" />
+                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/50 w-3 h-3 pointer-events-none" />
                         </div>
                       </div>
                     </td>
                     <td className="p-3">
-                      <div className="flex justify-center">
+                      <div className="flex flex-col items-center gap-2">
                         <input
                           type="text"
                           inputMode="numeric"
@@ -686,20 +808,27 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                               ...prev, [item.id]: { ...(prev[item.id] || {}), [item.sourceCity]: raw }
                             }));
                           }}
-                          className={`w-32 bg-black/40 border rounded-lg py-1.5 px-3 text-center text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#D4AF37] ${
-                            !unitPrice ? "border-red-500/30 text-red-400 placeholder:text-red-700/50" : "border-gray-700 text-white"
+                          className={`w-32 bg-black/20 border rounded-lg py-1.5 px-3 text-center text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary h-10 ${
+                            !unitPrice ? "border-red-500/30 text-red-400 placeholder:text-red-700/50" : "border-primary/20 text-white"
                           }`}
                         />
+                        {/* API Price Ref - Small badge below */}
+                        <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[8px] font-black uppercase tracking-tighter text-primary/60">Live:</span>
+                          <span className="text-[9px] font-mono font-bold text-on-surface">
+                            {livePrices[`${item.id}_${item.sourceCity}`] ? formatSilver(livePrices[`${item.id}_${item.sourceCity}`]).replace(' Silver', '') : '—'}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="p-3 text-right font-mono font-bold text-sm text-gray-300">
+                    <td className="p-3 text-right font-mono font-bold text-sm text-on-surface">
                       {formatSilver(netBuy * unitPrice)}
                     </td>
                   </tr>
                 );
               })}
               {shoppingList.length === 0 && (
-                <tr><td colSpan={9} className="p-10 text-center text-gray-500 italic text-sm">Add items to craft to see the shopping list.</td></tr>
+                <tr><td colSpan={9} className="p-10 text-center text-primary/50 italic text-sm">Add items to craft to see the shopping list.</td></tr>
               )}
             </tbody>
           </table>
@@ -707,32 +836,32 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       </div>
 
       {/* ─── Footer Summary ─── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#1e1e1e] p-5 rounded-2xl border border-gray-800">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 glass-panel p-5 rounded-3xl border border-primary/10">
         <div className="text-center p-4 bg-black/20 rounded-xl">
-          <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Station Fees</div>
-          <div className="text-2xl font-black text-gray-300">{formatSilver(totalFees).replace(' Silver', '')}</div>
+          <div className="text-[9px] font-black text-primary/50 uppercase tracking-widest mb-1">Station Fees</div>
+          <div className="text-2xl font-black text-on-surface">{formatSilver(totalFees).replace(' Silver', '')}</div>
         </div>
         <div className="text-center p-4 bg-black/20 rounded-xl">
-          <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Material Cost</div>
-          <div className="text-2xl font-black text-gray-300">{formatSilver(totalMat).replace(' Silver', '')}</div>
+          <div className="text-[9px] font-black text-primary/50 uppercase tracking-widest mb-1">Material Cost</div>
+          <div className="text-2xl font-black text-on-surface">{formatSilver(totalMat).replace(' Silver', '')}</div>
         </div>
         <div className="text-center p-4 bg-black/20 rounded-xl">
-          <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Sell Value</div>
-          <div className="text-2xl font-black text-[#D4AF37]">{formatSilver(totalSell).replace(' Silver', '')}</div>
+          <div className="text-[9px] font-black text-primary/50 uppercase tracking-widest mb-1">Total Sell Value</div>
+          <div className="text-2xl font-black text-primary">{formatSilver(totalSell).replace(' Silver', '')}</div>
         </div>
         <div className={`text-center p-4 rounded-xl border ${
           totalProfit > 0 ? "bg-emerald-500/10 border-emerald-500/30"
           : totalProfit < 0 ? "bg-red-500/10 border-red-500/30"
           : "bg-black/20 border-transparent"}`}>
-          <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Est. Profit</div>
+          <div className="text-[9px] font-black text-primary/50 uppercase tracking-widest mb-1">Est. Profit</div>
           <div className={`text-2xl font-black flex items-center justify-center gap-1.5 ${
-            totalProfit > 0 ? "text-emerald-400" : totalProfit < 0 ? "text-red-400" : "text-gray-400"}`}>
+            totalProfit > 0 ? "text-emerald-400" : totalProfit < 0 ? "text-red-400" : "text-primary/60"}`}>
             {totalProfit > 0 ? <TrendingUp className="w-5 h-5" /> : totalProfit < 0 ? <TrendingDown className="w-5 h-5" /> : null}
             {formatSilver(Math.abs(totalProfit)).replace(' Silver', '')}
           </div>
           {(totalFees + totalMat) > 0 && (
             <div className={`text-xs font-bold mt-1 ${
-              totalProfit > 0 ? "text-emerald-500" : totalProfit < 0 ? "text-red-500" : "text-gray-500"}`}>
+              totalProfit > 0 ? "text-emerald-500" : totalProfit < 0 ? "text-red-500" : "text-primary/50"}`}>
               {totalProfit > 0 ? "+" : ""}{((totalProfit / (totalFees + totalMat)) * 100).toFixed(1)}% ROI
             </div>
           )}
@@ -741,10 +870,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
       <div className="flex items-start gap-3 p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-        <p className="text-[10px] text-gray-500 leading-relaxed">
-          <strong className="text-gray-400">RRR is cashback:</strong> You bring the full ingredient amount — the station returns a portion after crafting.
-          <strong className="text-gray-400"> Station Fee</strong> is the silver you pay the station per craft (check in-game before entering).
-          <strong className="text-gray-400"> Default City</strong> auto-follows the item's best crafting city unless you manually change it.
+        <p className="text-[10px] text-primary/50 leading-relaxed">
+          <strong className="text-primary/60">RRR is cashback:</strong> You bring the full ingredient amount — the station returns a portion after crafting.
+          <strong className="text-primary/60"> Station Fee</strong> is the silver you pay the station per craft (check in-game before entering).
+          <strong className="text-primary/60"> Default City</strong> auto-follows the item's best crafting city unless you manually change it.
         </p>
       </div>
     </div>

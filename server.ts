@@ -3,9 +3,13 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
+import NodeCache from "node-cache";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize cache with 5 minutes (300 seconds) standard Time-To-Live
+const cache = new NodeCache({ stdTTL: 300 });
 
 async function startServer() {
   const app = express();
@@ -25,6 +29,17 @@ async function startServer() {
       }
 
       const url = `${baseUrl}${itemId}`;
+      
+      // Create a unique cache key based on request parameters
+      const cacheKey = `prices_${itemId}_${server}_${locations || ''}_${qualities || ''}`;
+      
+      // Check if data is in cache
+      const cachedData = cache.get(cacheKey);
+      if (cachedData) {
+        // console.log(`[Cache Hit] Prices: ${cacheKey}`);
+        return res.json(cachedData);
+      }
+
       const response = await axios.get(url, {
         params: req.query,
         validateStatus: (status) => status < 500 // Allow 4xx to be handled
@@ -32,6 +47,11 @@ async function startServer() {
       
       if (response.status === 429) {
         return res.status(429).json({ error: "Rate limit exceeded on AODP" });
+      }
+      
+      // Save valid successful responses to cache
+      if (response.status === 200) {
+        cache.set(cacheKey, response.data);
       }
       
       res.json(response.data);
@@ -55,6 +75,18 @@ async function startServer() {
       }
 
       const url = `${baseUrl}${itemId}`;
+      
+      // Create a unique cache key for history
+      const timeScale = req.query['time-scale'] || '1';
+      const cacheKey = `history_${itemId}_${server}_${locations || ''}_${qualities || ''}_${timeScale}_${date || ''}`;
+      
+      // Check if data is in cache
+      const cachedData = cache.get(cacheKey);
+      if (cachedData) {
+        // console.log(`[Cache Hit] History: ${cacheKey}`);
+        return res.json(cachedData);
+      }
+
       const response = await axios.get(url, {
         params: req.query,
         validateStatus: (status) => status < 500
@@ -62,6 +94,11 @@ async function startServer() {
       
       if (response.status === 429) {
         return res.status(429).json({ error: "Rate limit exceeded on AODP" });
+      }
+      
+      // Save valid successful responses to cache
+      if (response.status === 200) {
+        cache.set(cacheKey, response.data);
       }
       
       res.json(response.data);

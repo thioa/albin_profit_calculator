@@ -141,3 +141,123 @@ export function getCraftingCity(subCategory: string): AlbionCity | null {
   const key = subCategory.toLowerCase().replace(/[\s_-]/g, "");
   return CITY_CRAFT_BONUS[key] ?? null;
 }
+
+export interface RecommendationResult {
+  itemId: string;
+  itemName: string;
+  icon: string;
+  craftCity: AlbionCity;
+  sellCity: AlbionCity;
+  sellPrice: number;
+  totalCost: number;
+  profit: number;
+  roi: number;
+  ingredients: {
+    id: string;
+    count: number;
+    buyCity: AlbionCity;
+    buyPrice: number;
+  }[];
+}
+
+/**
+ * Analyzes a single item for crafting profitability.
+ * If fixedCity is provided, it only looks at prices in that specific city (Buy & Sell locally).
+ */
+export function calculateRecommendationProfit(
+  item: AlbionItem,
+  prices: Record<string, Record<string, number>>, // itemId -> city -> price
+  rrr: number,
+  isPremium: boolean = true,
+  fixedCity?: AlbionCity
+): RecommendationResult | null {
+  if (!item.craftingRecipe || item.craftingRecipe.length === 0) return null;
+
+  // 1. Determine Crafting City (Bonus City or Local if fixed)
+  const craftCity = fixedCity || getCraftingCity(item.subCategory) || "Caerleon";
+
+  // 2. Calculate Material Cost
+  const ingredients: RecommendationResult["ingredients"] = [];
+  let totalMaterialCost = 0;
+
+  for (const req of item.craftingRecipe) {
+    const itemPrices = prices[req.id];
+    if (!itemPrices) return null;
+
+    let buyPrice = Infinity;
+    let buyCity: AlbionCity | null = null;
+
+    if (fixedCity) {
+      buyPrice = itemPrices[fixedCity] || 0;
+      buyCity = fixedCity;
+    } else {
+      // Find cheapest city for this ingredient (Global Golden Route)
+      Object.entries(itemPrices).forEach(([city, price]) => {
+        if (price > 0 && price < buyPrice) {
+          buyPrice = price;
+          buyCity = city as AlbionCity;
+        }
+      });
+    }
+
+    if (!buyCity || buyPrice <= 0 || buyPrice === Infinity) return null;
+
+    ingredients.push({
+      id: req.id,
+      count: req.count,
+      buyCity,
+      buyPrice,
+    });
+
+    totalMaterialCost += buyPrice * req.count;
+  }
+
+  // Apply RRR (Resource Return Rate)
+  const netMaterialCost = totalMaterialCost * (1 - rrr / 100);
+
+  // 3. Calculate Station Fee
+  // Using calculateStationFee with a default user fee of 500 silver per 100 food
+  const stationFee = calculateStationFee(item.itemValue, 500); 
+
+  const totalCost = netMaterialCost + stationFee;
+
+  // 4. Find Sell Price
+  const targetPrices = prices[item.id];
+  if (!targetPrices) return null;
+
+  let sellPrice = 0;
+  let sellCity: AlbionCity | null = null;
+
+  if (fixedCity) {
+    sellPrice = targetPrices[fixedCity] || 0;
+    sellCity = fixedCity;
+  } else {
+    // Best sell price globally
+    Object.entries(targetPrices).forEach(([city, price]) => {
+      if (price > sellPrice) {
+        sellPrice = price;
+        sellCity = city as AlbionCity;
+      }
+    });
+  }
+
+  if (!sellCity || sellPrice <= 0) return null;
+
+  // 5. Calculate Final Profit
+  const netRevenue = calculateNetRevenue(sellPrice, isPremium ? 4 : 8, 1);
+  const profit = netRevenue - totalCost;
+  const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+  return {
+    itemId: item.id,
+    itemName: item.name,
+    icon: item.icon,
+    craftCity,
+    sellCity,
+    sellPrice,
+    totalCost,
+    profit,
+    roi,
+    ingredients,
+  };
+}

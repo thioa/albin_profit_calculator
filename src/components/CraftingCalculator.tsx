@@ -14,7 +14,7 @@ export default function CraftingCalculator({ server, injectedItem, onItemInjecte
     <BaseCalculator 
       server={server}
       title="Items to Craft"
-      icon={<Package className="w-5 h-5 text-[#D4AF37]" />}
+      icon={<Package className="w-5 h-5 text-primary" />}
       storageKey="crafting"
       filterPredicate={filterPredicate}
       injectedItem={injectedItem}

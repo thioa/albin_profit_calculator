@@ -100,23 +100,23 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
   };
 
   return (
-    <div className="w-full space-y-3">
+    <div className={`w-full space-y-3 relative ${isOpen ? "z-50" : "z-10"}`}>
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1" ref={containerRef}>
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/60 w-5 h-5" />
             <input
               type="text"
               value={query}
               onChange={handleSearch}
               onFocus={() => (query.length > 0 || selectedCategory) && setIsOpen(true)}
               placeholder="Search for an item (e.g. T4 Bag)..."
-              className="w-full bg-[#1e1e1e] border border-gray-700 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all"
+              className="w-full glass-panel border border-primary/20 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
             />
           </div>
 
           {isOpen && results.length > 0 && (
-            <div className="absolute z-50 w-full mt-2 bg-[#1e1e1e] border border-gray-700 rounded-xl shadow-2xl overflow-y-auto max-h-[400px]">
+            <div className="absolute z-50 w-full mt-2 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-y-auto max-h-[400px]">
               {results.map((item) => (
                 <button
                   key={item.id}
@@ -125,17 +125,17 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                     setQuery(item.name);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-[#2a2a2a] transition-colors text-left border-b border-gray-800 last:border-0"
+                  className="w-full flex items-center gap-4 p-3 hover:bg-primary/10 hover:translate-x-1 transition-all text-left border-b border-primary/10 last:border-0 group/item"
                 >
                   <img
                     src={item.icon}
                     alt={item.name}
-                    className="w-10 h-10 object-contain"
+                    className="w-10 h-10 object-contain group-hover/item:scale-110 transition-transform"
                     referrerPolicy="no-referrer"
                   />
                   <div>
-                    <div className="text-white font-medium">{item.name}</div>
-                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    <div className="text-white font-medium group-hover/item:text-primary transition-colors">{item.name}</div>
+                    <div className="text-[10px] text-primary/60 font-bold uppercase tracking-widest">
                       Tier {item.tier} {item.enchantment > 0 ? `.${item.enchantment}` : ""} • {item.category}
                     </div>
                   </div>
@@ -153,14 +153,14 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                 setSelectedCategory(e.target.value);
                 setSelectedSubCategory("");
               }}
-              className="w-full appearance-none bg-[#1e1e1e] border border-gray-700 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all text-sm font-bold uppercase tracking-wider"
+              className="w-full appearance-none glass-panel border border-primary/20 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm font-bold uppercase tracking-wider"
             >
               <option value="">All Categories</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/60 w-4 h-4 pointer-events-none" />
           </div>
 
           <div className="relative min-w-[160px]">
@@ -168,14 +168,14 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
               value={selectedSubCategory}
               onChange={(e) => setSelectedSubCategory(e.target.value)}
               disabled={!selectedCategory}
-              className="w-full appearance-none bg-[#1e1e1e] border border-gray-700 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all text-sm font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full appearance-none glass-panel border border-primary/20 rounded-xl py-4 pl-4 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">All Sub-Cats</option>
               {subCategories.map(sub => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/60 w-4 h-4 pointer-events-none" />
           </div>
         </div>
       </div>

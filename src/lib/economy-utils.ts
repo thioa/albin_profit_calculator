@@ -34,14 +34,16 @@ export const calculateProfit = (
 };
 
 export const formatSilver = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount).replace(/,/g, ' ');
 };
 
 export const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
+  if (!dateString || dateString.startsWith("0001")) return "Never";
+  const date = new Date(dateString.endsWith('Z') ? dateString : `${dateString}Z`);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+  if (diffInSeconds < 0) return "Just now"; // Prevent future-date bugs
   if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
@@ -52,7 +54,8 @@ export const formatTimeAgo = (dateString: string): string => {
 };
 
 export const isStaleData = (dateString: string): boolean => {
-  const date = new Date(dateString);
+  if (!dateString || dateString.startsWith("0001")) return true;
+  const date = new Date(dateString.endsWith('Z') ? dateString : `${dateString}Z`);
   const now = new Date();
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
   return diffInHours > 24;
@@ -61,8 +64,8 @@ export const isStaleData = (dateString: string): boolean => {
 export type FreshnessLevel = "excellent" | "good" | "fair" | "stale";
 
 export const getFreshnessLevel = (dateString: string): FreshnessLevel => {
-  if (!dateString) return "stale";
-  const date = new Date(dateString);
+  if (!dateString || dateString.startsWith("0001")) return "stale";
+  const date = new Date(dateString.endsWith('Z') ? dateString : `${dateString}Z`);
   const now = new Date();
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 

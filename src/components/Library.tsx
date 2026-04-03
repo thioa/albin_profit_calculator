@@ -34,12 +34,12 @@ export default function Library() {
 
   return (
     <div className="space-y-6 max-w-[1000px] mx-auto">
-      <div className="bg-[#1e1e1e] p-5 rounded-2xl border border-gray-800">
+      <div className="glass-panel p-5 rounded-2xl border border-primary/10 relative z-20">
         <div className="flex items-center gap-3 mb-4">
-          <BookOpen className="w-5 h-5 text-[#D4AF37]" />
+          <BookOpen className="w-5 h-5 text-primary" />
           <h2 className="text-xl font-black text-white uppercase italic tracking-wider">Item Library</h2>
         </div>
-        <p className="text-gray-400 text-sm mb-6">
+        <p className="text-primary/60 text-sm mb-6">
           Search for any item to see its crafting recipe or discover what it is used to craft.
         </p>
         <SearchBar onSelect={setSelectedItem} />
@@ -55,15 +55,15 @@ export default function Library() {
             className="space-y-6"
           >
             {/* Item Header */}
-            <div className="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 flex items-center gap-6">
-              <div className="w-24 h-24 bg-black/40 rounded-xl border border-gray-700 flex items-center justify-center p-2 shrink-0">
+            <div className="glass-panel p-6 rounded-2xl border border-primary/10 flex items-center gap-6">
+              <div className="w-24 h-24 bg-black/20 rounded-xl border border-primary/20 flex items-center justify-center p-2 shrink-0">
                 <img src={selectedItem.icon} alt={selectedItem.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-3xl font-black text-white uppercase italic truncate">{selectedItem.name}</h3>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="px-2 py-1 bg-gray-800 text-gray-300 text-[10px] font-bold uppercase tracking-widest rounded-md">Tier {selectedItem.tier}</span>
-                  <span className="px-2 py-1 bg-[#D4AF37]/10 text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest rounded-md border border-[#D4AF37]/20">{selectedItem.category}</span>
+                  <span className="px-2 py-1 bg-gray-800 text-on-surface text-[10px] font-bold uppercase tracking-widest rounded-md">Tier {selectedItem.tier}</span>
+                  <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-md border border-primary/20">{selectedItem.category}</span>
                   {selectedItem.subCategory && <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-md border border-blue-500/20">{selectedItem.subCategory}</span>}
                 </div>
               </div>
@@ -71,8 +71,8 @@ export default function Library() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* How to Craft */}
-              <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
-                <div className="bg-black/30 p-4 border-b border-gray-800 text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <div className="glass-panel border border-primary/10 rounded-2xl overflow-hidden flex flex-col">
+                <div className="bg-black/30 p-4 border-b border-primary/10 text-sm font-black text-primary/60 uppercase tracking-widest flex items-center gap-2">
                   <Package className="w-4 h-4" /> How to Craft
                 </div>
                 <div className="p-4 flex-1">
@@ -85,9 +85,9 @@ export default function Library() {
                             <div key={req.id} className="flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5">
                               <img src={item?.icon || `https://render.albiononline.com/v1/item/${req.id}.png`} alt="" className="w-8 h-8" referrerPolicy="no-referrer" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-gray-300 truncate">{item?.name || req.id}</div>
+                                <div className="text-sm font-bold text-on-surface truncate">{item?.name || req.id}</div>
                               </div>
-                              <div className="font-mono font-bold text-[#D4AF37] px-3">{req.count}x</div>
+                              <div className="font-mono font-bold text-primary px-3">{req.count}x</div>
                             </div>
                           );
                         })}
@@ -95,7 +95,7 @@ export default function Library() {
                       
                       <button 
                         onClick={() => dispatchAddItem(selectedItem)}
-                        className="w-full flex items-center justify-center gap-2 mt-4 px-4 py-3 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 rounded-xl transition-all font-bold uppercase tracking-wider text-xs"
+                        className="w-full flex items-center justify-center gap-2 mt-4 px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl transition-all font-bold uppercase tracking-wider text-xs"
                         title={`Calculate profit in ${getTargetTab(selectedItem)} tab`}
                       >
                         <Calculator className="w-4 h-4" /> Calculate Profit
@@ -111,8 +111,8 @@ export default function Library() {
               </div>
 
               {/* Used In */}
-              <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl overflow-hidden flex flex-col">
-                <div className="bg-black/30 p-4 border-b border-gray-800 text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <div className="glass-panel border border-primary/10 rounded-2xl overflow-hidden flex flex-col">
+                <div className="bg-black/30 p-4 border-b border-primary/10 text-sm font-black text-primary/60 uppercase tracking-widest flex items-center gap-2">
                   <ArrowRight className="w-4 h-4" /> Used To Craft
                 </div>
                 <div className="p-4 flex-1 overflow-y-auto max-h-[400px] custom-scrollbar">
@@ -122,10 +122,10 @@ export default function Library() {
                         <div key={recipeItem.id} className="flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
                           <img src={recipeItem.icon} alt="" className="w-8 h-8" referrerPolicy="no-referrer" />
                           <div className="flex-1 min-w-0 flex items-center justify-between">
-                            <div className="text-sm font-bold text-gray-300 truncate group-hover:text-white transition-colors">{recipeItem.name}</div>
+                            <div className="text-sm font-bold text-on-surface truncate group-hover:text-white transition-colors">{recipeItem.name}</div>
                             <button 
                               onClick={() => dispatchAddItem(recipeItem)}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 bg-[#D4AF37]/10 hover:bg-[#D4AF37] text-[#D4AF37] hover:text-black rounded-lg transition-all"
+                              className="opacity-0 group-hover:opacity-100 p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-black rounded-lg transition-all"
                               title={`Calculate profit in ${getTargetTab(recipeItem)} tab`}
                             >
                               <Calculator className="w-3.5 h-3.5" />

@@ -7,7 +7,9 @@ import itemsDataRaw from "../data/items-lite.json";
 import { processItems } from "../lib/item-utils";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]);
-import { Loader2, TrendingUp, ArrowRight, MapPin, RefreshCw, AlertCircle, Clock, ShieldAlert, ShieldCheck, Info, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, Info, Clock, ArrowRight, Zap, TrendingUp, AlertTriangle, ShieldCheck, Star, ShieldAlert } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useWatchlist } from "../contexts/WatchlistContext";
 import { motion } from "motion/react";
 
 interface Opportunity {
@@ -64,6 +66,8 @@ export default function MarketOpportunities({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scanIdRef = React.useRef(0);
+  const { user, toggleWatchlist } = useAuth();
+  const { addNotification } = useWatchlist();
 
   const itemsMap = useMemo(() => {
     const map: Record<string, AlbionItem> = {};
@@ -279,7 +283,12 @@ export default function MarketOpportunities({
   };
 
   useEffect(() => {
-    scanOpportunities();
+    // Small initial delay to avoid hammering API on first page load
+    // and to let other concurrent requests settle first
+    const timer = setTimeout(() => {
+      scanOpportunities();
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [server, selectedCities, qualities, maxAgeHours, hideSuspicious, allowedStatuses, preferredEnchantments, selectedCategories, selectedSubCategory]);
 
   const sortedOpportunities = useMemo(() => {
@@ -326,277 +335,266 @@ export default function MarketOpportunities({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-8 relative overflow-hidden">
-        {/* Background Scanning Effect */}
-        <div className="absolute inset-0 pointer-events-none opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(#D4AF37_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
-          <motion.div 
-            className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"
-            animate={{ top: ["0%", "100%"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 blur-2xl bg-[#D4AF37]/20 rounded-full animate-pulse" />
-          <div className="relative bg-[#16161a] p-6 rounded-full border border-[#D4AF37]/30 shadow-[0_0_40px_rgba(212,175,55,0.1)]">
-            <RefreshCw className="w-12 h-12 text-[#D4AF37] animate-spin" />
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-4">
-          <h3 className="text-white font-black uppercase tracking-[0.4em] text-sm animate-pulse flex items-center gap-3">
-            <span className="w-2 h-2 bg-[#D4AF37] rounded-full" />
-            Scanning <span className="text-[#D4AF37]">Market</span>
-            <span className="w-2 h-2 bg-[#D4AF37] rounded-full" />
-          </h3>
-          <div className="flex flex-col items-center gap-1">
-            <div className="h-1 w-48 bg-white/5 rounded-full overflow-hidden relative">
-              <motion.div 
-                className="absolute inset-0 bg-[#D4AF37]"
-                initial={{ left: "-100%" }}
-                animate={{ left: "100%" }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </div>
-            <p className="text-gray-600 font-mono text-[9px] uppercase tracking-[0.3em] mt-2">
-              Processing global economy nodes...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-3xl text-center space-y-4">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <p className="text-red-500 font-bold">{error}</p>
-        <button onClick={scanOpportunities} className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition-colors">Retry Scan</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+
+      {/* ── ALWAYS-VISIBLE HEADER ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">Top <span className="text-[#D4AF37]">Flipping</span> Opportunities</h3>
-          <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight">Top <span className="text-primary">Flipping</span> Opportunities</h3>
+          <p className="text-primary/60 text-sm mt-2">
+            Identify price discrepancies between different cities to find profitable flipping opportunities.
+          </p>
+          <p className="text-primary/30 text-[10px] flex items-center gap-1 mt-1">
             <Info className="w-3 h-3" /> Data provided by Albion Data Project. High profit margins may indicate price errors or low volume.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <button 
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Stats + Limit Dropdown */}
+          <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-xl border border-primary/10">
+            <span className="text-primary/40 text-xs font-bold uppercase tracking-widest">Showing</span>
+            <span className="text-white font-black text-sm">
+              {Math.min(displayLimit, sortedOpportunities.length)}
+            </span>
+            <span className="text-primary/30 text-xs">of</span>
+            <span className="text-primary font-black text-sm">{sortedOpportunities.length}</span>
+            <div className="w-[1px] h-4 bg-primary/10 mx-1" />
+            <select
+              value={displayLimit}
+              onChange={(e) => setDisplayLimit(Number(e.target.value))}
+              className="bg-transparent text-primary/60 text-xs font-bold uppercase tracking-widest focus:outline-none cursor-pointer hover:text-primary transition-colors"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+          <button
             onClick={scanOpportunities}
-            className="flex items-center gap-2 bg-[#1e1e1e] border border-gray-800 px-4 py-2 rounded-xl text-gray-400 hover:text-white transition-colors"
+            disabled={loading}
+            className={`flex items-center gap-2 glass-panel px-4 py-2 rounded-xl border border-primary/10 transition-colors ${
+              loading ? 'text-primary/30 cursor-not-allowed' : 'text-primary/60 hover:text-white hover:border-primary/40'
+            }`}
           >
-            <RefreshCw className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-widest">Rescan</span>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-xs font-bold uppercase tracking-widest">{loading ? 'Scanning...' : 'Rescan'}</span>
           </button>
         </div>
       </div>
 
-      {opportunities.length === 0 ? (
-        <div className="bg-[#1e1e1e] border border-gray-800 p-12 rounded-3xl text-center">
-          <p className="text-gray-500 italic">No profitable flips found for the current items and cities.</p>
+      {/* ── LOADING SKELETONS ── */}
+      {loading && opportunities.length === 0 && (
+        <div className="grid grid-cols-1 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="glass-panel border border-primary/10 rounded-xl h-[88px] w-full animate-pulse flex items-center px-5 gap-5">
+               <div className="w-10 h-10 rounded-xl bg-white/5 shrink-0" />
+               <div className="w-48 space-y-2 shrink-0">
+                 <div className="h-3 w-32 bg-white/10 rounded" />
+                 <div className="h-2 w-20 bg-white/5 rounded" />
+               </div>
+               <div className="w-64 space-y-2 shrink-0 border-l border-white/5 pl-4">
+                 <div className="h-2 w-3/4 bg-white/10 rounded" />
+                 <div className="h-2 w-1/2 bg-white/5 rounded" />
+               </div>
+               <div className="flex-1 space-y-2 border-l border-white/5 pl-4 flex items-center gap-8">
+                 <div className="h-6 w-16 bg-white/5 rounded" />
+                 <div className="h-6 w-16 bg-white/5 rounded" />
+                 <div className="h-6 w-16 bg-white/5 rounded" />
+               </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {sortedOpportunities.slice(0, displayLimit).map((opp, idx) => {
-              const freshnessUI = getFreshnessUI(opp.freshness);
-              const isSuspicious = opp.profitPercent > 100 || opp.verificationStatus === 'suspicious';
-              const isVerified = opp.verificationStatus === 'verified';
+      )}
 
-              return (
+      {/* ── ERROR STATE ── */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-3xl text-center space-y-4">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
+          <p className="text-red-500 font-bold">{error}</p>
+          <button onClick={scanOpportunities} className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition-colors">Retry Scan</button>
+        </div>
+      )}
+
+      {/* ── RESULTS ── */}
+      {!loading && !error && opportunities.length > 0 && (
+        <div className="grid grid-cols-1 gap-3">
+          {sortedOpportunities.slice(0, displayLimit).map((opp, idx) => {
+            const freshnessUI = getFreshnessUI(opp.freshness);
+            const isSuspicious = opp.profitPercent > 100 || opp.verificationStatus === 'suspicious';
+            const isVerified = opp.verificationStatus === 'verified';
+
+            return (
+
                 <motion.div
                   key={`${opp.itemId}-${opp.quality}-${opp.buyCity}-${opp.sellCity}-${idx}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  className={`group relative bg-[#0d0d0f] border rounded-xl overflow-hidden transition-all duration-700 hover:border-[#D4AF37]/60 min-h-[140px] w-full mx-auto ${
-                    isSuspicious ? "border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.05)]" : 
-                    isVerified ? "border-green-500/10 shadow-[0_0_20px_rgba(34,197,94,0.05)]" : "border-white/5"
+                  className={`group relative glass-panel border rounded-xl overflow-hidden transition-all duration-500 hover:border-primary/40 w-full ${ 
+                    isSuspicious ? "border-red-500/20" : 
+                    isVerified ? "border-green-500/20" : "border-primary/10"
                   }`}
                 >
-                  {/* Interactive Hover Shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
-
                   {/* Left Accent Bar */}
-                  <div className={`absolute top-0 left-0 w-1 h-full transition-all duration-500 group-hover:w-1.5 ${
+                  <div className={`absolute top-0 left-0 w-1 h-full ${ 
                     isSuspicious ? "bg-red-500" : 
-                    isVerified ? "bg-green-500" : "bg-gray-800"
+                    isVerified ? "bg-green-500" : "bg-primary/30"
                   }`} />
 
-                  <div className="p-4 flex flex-col lg:flex-row items-center gap-4 lg:gap-10">
-                    {/* Item Section */}
-                    <div className="flex items-center gap-5 w-full lg:w-[24%] shrink-0">
+                  <div className="pl-5 pr-4 py-3 flex flex-row items-center gap-5">
+
+                    {/* ── ITEM ── */}
+                    <div className="flex items-center gap-3 w-48 shrink-0">
                       <div className="relative shrink-0">
-                        {/* Dynamic Background Glow */}
-                        <div className={`absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-700 ${
-                          isSuspicious ? "bg-red-500" : isVerified ? "bg-green-500" : "bg-[#D4AF37]"
-                        }`} />
-                        
-                        <div className="relative bg-[#16161a] p-3 rounded-2xl border border-white/10 shadow-inner group-hover:border-[#D4AF37]/30 transition-colors duration-500">
+                        <div className="glass-panel p-2.5 rounded-xl border border-primary/20">
                           <img 
                             src={opp.icon} 
                             alt={opp.itemName} 
-                            className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] group-hover:scale-110 transition-transform duration-700 ease-out" 
+                            className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-500" 
                             referrerPolicy="no-referrer" 
                           />
                         </div>
-                        
-                        {/* Status Badge Overlays */}
-                        <div className="absolute -top-2 -right-2 flex flex-col gap-1 scale-90 group-hover:scale-100 transition-transform duration-500">
-                          {isSuspicious && (
-                            <div className="bg-red-500 rounded-full p-1.5 shadow-lg border-2 border-[#0d0d0f] animate-pulse">
-                              <AlertTriangle className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                          {isVerified && (
-                            <div className="bg-green-500 rounded-full p-1.5 shadow-lg border-2 border-[#0d0d0f]">
-                              <ShieldCheck className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                        </div>
+                        {isSuspicious && (
+                          <div className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full p-1 border-2 border-[#0d0d0f]">
+                            <AlertTriangle className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                        {isVerified && !isSuspicious && (
+                          <div className="absolute -top-1.5 -right-1.5 bg-green-500 rounded-full p-1 border-2 border-[#0d0d0f]">
+                            <ShieldCheck className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-white font-black text-sm truncate tracking-tight group-hover:text-[#D4AF37] transition-colors duration-300">
-                          {opp.itemName}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[9px] font-mono text-gray-500 uppercase bg-white/5 px-1.5 py-0.5 rounded">
-                            {opp.itemId.split('_').slice(1).join(' ')}
-                          </span>
-                          <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-widest">
+                        {/* Name + Star on same row */}
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-white font-bold text-xs truncate group-hover:text-primary transition-colors">
+                            {opp.itemName}
+                          </h4>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!user) { alert("Please login to watchlist items."); return; }
+                              toggleWatchlist(opp.itemId);
+                              if (!user.watchlist.includes(opp.itemId)) {
+                                addNotification(opp.itemId, opp.itemName, `Added ${opp.itemName} to your watchlist. We'll notify you of price changes!`, 'system');
+                              }
+                            }}
+                            className={`p-1 rounded transition-all shrink-0 ${ 
+                              user?.watchlist.includes(opp.itemId) 
+                              ? "text-primary" 
+                              : "text-primary/20 hover:text-primary"
+                            }`}
+                          >
+                            <Star className={`w-3 h-3 ${user?.watchlist.includes(opp.itemId) ? "fill-current" : ""}`} />
+                          </button>
+                        </div>
+                        {/* Badges */}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[8px] font-mono text-primary/40 uppercase bg-white/5 px-1.5 py-0.5 rounded">
                             {getQualityName(opp.quality)}
                           </span>
-                        </div>
-                        <div className={`text-[8px] font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2 ${
-                          isVerified ? "text-green-500" : isSuspicious ? "text-red-500" : "text-gray-600"
-                        }`}>
-                          <span className={`w-1 h-1 rounded-full ${
-                            isVerified ? "bg-green-500" : isSuspicious ? "bg-red-500" : "bg-gray-700"
-                          }`} />
-                          {opp.verificationStatus || 'unverified'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Route Section - Glassmorphism Style */}
-                    <div className="flex items-center justify-between flex-1 min-w-[300px] px-8 py-4 bg-white/[0.03] backdrop-blur-sm rounded-xl border border-white/5 group-hover:bg-white/[0.05] transition-colors duration-500">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.25em]">Origin</span>
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                          <span className="text-white font-bold text-sm tracking-tight">{opp.buyCity}</span>
-                        </div>
-                        <div className="font-mono text-xs text-gray-300 font-bold">
-                          {formatSilver(opp.buyPrice)}
-                        </div>
-                        <div className="text-[10px] text-gray-600 flex items-center gap-2">
-                          <Clock className="w-3 h-3" /> {formatTimeAgo(opp.buyDate)}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center justify-center px-6">
-                        <div className="relative">
-                          <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0d0d0f] p-1.5 rounded-full border border-white/5">
-                            <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-[#D4AF37] group-hover:translate-x-0.5 transition-all duration-500" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 text-right">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-[0.25em]">Target</span>
-                        <div className="flex items-center gap-2.5 justify-end">
-                          <span className="text-white font-bold text-sm tracking-tight">{opp.sellCity}</span>
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.5)]" />
-                        </div>
-                        <div className="font-mono text-xs text-gray-300 font-bold">
-                          {formatSilver(opp.sellPrice)}
-                        </div>
-                        <div className="text-[10px] text-gray-600 flex items-center gap-2 justify-end">
-                          {formatTimeAgo(opp.sellDate)} <Clock className="w-3 h-3" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Metrics Section */}
-                    <div className="flex items-center gap-10 lg:gap-16 shrink-0">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest">Market Size</span>
-                        <div className="flex items-center gap-2.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-blue-500/60" />
-                          <span className="text-sm font-mono text-gray-300 font-bold">
-                            {opp.historicalCount ? opp.historicalCount.toLocaleString() : "0"}
+                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${ 
+                            isVerified ? "bg-green-500/10 text-green-400" : 
+                            isSuspicious ? "bg-red-500/10 text-red-400" : "bg-white/5 text-gray-500"
+                          }`}>
+                            {opp.verificationStatus || 'unknown'}
                           </span>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest">Yield</span>
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 ${isSuspicious ? 'text-red-400' : 'text-blue-400'}`}>
-                          <Zap className="w-3.5 h-3.5 fill-current opacity-50" />
-                          <span className="text-sm font-mono font-black">{opp.profitPercent.toFixed(1)}%</span>
+                    {/* ── ROUTE ── */}
+                    <div className="flex items-center gap-3 w-64 shrink-0 bg-white/[0.03] border border-primary/10 rounded-xl px-4 py-3">
+                      {/* Origin */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] text-primary/40 font-black uppercase tracking-widest mb-1">Buy</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                          <span className="text-white font-bold text-xs truncate">{opp.buyCity}</span>
+                        </div>
+                        <div className="font-mono text-xs text-primary font-bold mt-0.5">{formatSilver(opp.buyPrice).replace(' Silver','')}</div>
+                        <div className="text-[8px] text-primary/30 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-2.5 h-2.5" />{formatTimeAgo(opp.buyDate)}
                         </div>
                       </div>
-
-                      <div className="flex flex-col items-end gap-1.5 group/fresh relative">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest">Reliability</span>
-                        <div className={`flex items-center gap-2.5 cursor-help transition-colors duration-300 ${freshnessUI.color}`}>
-                          <freshnessUI.icon className="w-4 h-4" />
-                          <span className="text-[11px] font-black uppercase tracking-tight">{freshnessUI.label}</span>
+                      {/* Arrow */}
+                      <ArrowRight className="w-3.5 h-3.5 text-primary/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                      {/* Target */}
+                      <div className="flex-1 min-w-0 text-right">
+                        <div className="text-[8px] text-primary/40 font-black uppercase tracking-widest mb-1">Sell</div>
+                        <div className="flex items-center gap-1.5 justify-end">
+                          <span className="text-white font-bold text-xs truncate">{opp.sellCity}</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                         </div>
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full right-0 mb-4 w-56 p-4 bg-[#0a0a0b] border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover/fresh:opacity-100 group-hover/fresh:visible transition-all duration-300 translate-y-2 group-hover/fresh:translate-y-0 z-50 pointer-events-none">
-                          <div className="flex items-center gap-2 mb-2">
-                            <freshnessUI.icon className={`w-4 h-4 ${freshnessUI.color}`} />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${freshnessUI.color}`}>{freshnessUI.label}</span>
-                          </div>
-                          <p className="text-[10px] text-gray-400 normal-case leading-relaxed font-medium">
-                            {freshnessUI.description}
-                          </p>
-                          <div className="absolute top-full right-6 border-[6px] border-transparent border-t-[#0a0a0b]"></div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end pl-8 border-l border-white/10">
-                        <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1">Net Profit</span>
-                        <div className="relative group/profit">
-                          <div className="absolute -inset-2 bg-green-500/10 blur-lg opacity-0 group-hover/profit:opacity-100 transition-opacity duration-500" />
-                          <div className="relative flex items-baseline gap-2">
-                            <span className="text-2xl font-mono font-black text-green-500 tracking-tighter drop-shadow-[0_0_10px_rgba(34,197,94,0.3)]">
-                              {formatSilver(opp.finalProfit).replace(' Silver', '')}
-                            </span>
-                            <span className="text-[10px] font-black text-green-800 uppercase tracking-widest">SLV</span>
-                          </div>
+                        <div className="font-mono text-xs text-primary font-bold mt-0.5">{formatSilver(opp.sellPrice).replace(' Silver','')}</div>
+                        <div className="text-[8px] text-primary/30 flex items-center gap-1 justify-end mt-0.5">
+                          {formatTimeAgo(opp.sellDate)}<Clock className="w-2.5 h-2.5" />
                         </div>
                       </div>
                     </div>
+
+                    {/* ── METRICS ── */}
+                    <div className="flex items-center gap-px flex-1 min-w-0">
+                      {/* Market Size */}
+                      <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4">
+                        <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Volume</span>
+                        <div className="flex items-center gap-1.5">
+                          <TrendingUp className="w-3 h-3 text-blue-400/60" />
+                          <span className="text-sm font-mono text-on-surface font-bold">
+                            {opp.historicalCount ? opp.historicalCount.toLocaleString() : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Yield */}
+                      <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4">
+                        <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">ROI</span>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-mono font-black ${isSuspicious ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                          <Zap className="w-3 h-3 fill-current opacity-60" />
+                          {opp.profitPercent.toFixed(1)}%
+                        </div>
+                      </div>
+                      {/* Reliability */}
+                      <div className="flex-1 flex flex-col items-center gap-1 border-r border-white/5 px-4 group/fresh relative">
+                        <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Data Age</span>
+                        <div className={`flex items-center gap-1.5 cursor-help ${freshnessUI.color}`}>
+                          <freshnessUI.icon className="w-3.5 h-3.5" />
+                          <span className="text-xs font-black uppercase">{freshnessUI.label}</span>
+                        </div>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-52 p-3 bg-[#0a0a0b] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover/fresh:opacity-100 group-hover/fresh:visible transition-all z-50 pointer-events-none">
+                          <p className="text-[10px] text-primary/60 leading-relaxed">{freshnessUI.description}</p>
+                        </div>
+                      </div>
+                      {/* Net Profit */}
+                      <div className="flex-1 flex flex-col items-center gap-1 pl-4">
+                        <span className="text-[8px] text-primary/40 font-black uppercase tracking-widest">Net Profit</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-mono font-black text-green-400 tracking-tighter">
+                            {formatSilver(opp.finalProfit).replace(' Silver', '')}
+                          </span>
+                          <span className="text-[9px] font-black text-green-700 uppercase">SLV</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </motion.div>
-              );
-            })}
-          </div>
+            );
+          })}
+        </div>
+      )}
 
-          {opportunities.length > displayLimit && (
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={() => setDisplayLimit(prev => prev + 10)}
-                className="bg-[#1e1e1e] border border-gray-800 px-8 py-3 rounded-xl text-gray-400 hover:text-white hover:border-[#D4AF37] transition-all font-bold uppercase tracking-widest text-xs flex items-center gap-2"
-              >
-                <TrendingUp className="w-4 h-4" />
-                Load More Opportunities
-              </button>
-            </div>
-          )}
+      {/* ── LOAD MORE ── */}
+      {!loading && !error && opportunities.length > displayLimit && (
+        <div className="flex justify-center mt-6">
+          <button 
+            onClick={() => setDisplayLimit(d => d + 20)}
+            className="glass-panel px-6 py-3 rounded-xl border border-primary/20 hover:border-primary/50 text-white font-bold tracking-widest uppercase text-xs transition-all hover:bg-primary/10 flex items-center gap-2 group"
+          >
+            Load More <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
       )}
     </div>

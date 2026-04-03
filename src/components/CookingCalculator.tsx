@@ -35,7 +35,7 @@ export default function CookingCalculator({ server, injectedItem, onItemInjected
     <BaseCalculator 
       server={server}
       title="Items to Cook"
-      icon={<ChefHat className="w-5 h-5 text-[#D4AF37]" />}
+      icon={<ChefHat className="w-5 h-5 text-primary" />}
       storageKey="cooking"
       filterPredicate={filterPredicate}
       outputMultiplier={getCookingMultiplier}

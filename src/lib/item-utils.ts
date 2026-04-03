@@ -1,106 +1,199 @@
 import { AlbionItem } from "../types/albion";
 
+// Pre-computed regex patterns for better performance
+const PATTERNS = {
+  mounts: {
+    id: /_MOUNT_/,
+    name: /(horse|ox|stag|moose|dire)/i
+  },
+  weapons: {
+    id: /(_MAIN_|_2H_|_OFF_)/,
+    sword: /_SWORD/,
+    axe: /_AXE/,
+    mace: /_MACE/,
+    hammer: /_HAMMER/,
+    spear: /_SPEAR/,
+    bow: /_BOW/,
+    crossbow: /_CROSSBOW/,
+    staff: /_STAFF/,
+    fire: /FIRE/,
+    holy: /HOLY/,
+    curse: /CURSE/,
+    frost: /FROST/,
+    arcane: /ARCANE/,
+    nature: /NATURE/
+  },
+  armor: {
+    id: /(_HEAD_|_ARMOR_|_SHOES_)/,
+    plate: /_PLATE_/,
+    leather: /_LEATHER_/,
+    cloth: /_CLOTH_/
+  },
+  accessories: {
+    bag: /_BAG/,
+    cape: /_CAPE/
+  },
+  consumables: {
+    potion: /_POTION_/,
+    meal: /_MEAL_/,
+    food: /_FOOD_/,
+    cooked: /_COOKED_/
+  },
+  farm: {
+    animal: /_ANIMAL_/,
+    egg: /_EGG_/,
+    milk: /_MILK_/,
+    meat: /_MEAT_/,
+    farm: /_FARM_/
+  },
+  resources: {
+    wood: /_WOOD/,
+    planks: /_PLANKS/,
+    rock: /_ROCK/,
+    stoneblock: /_STONEBLOCK/,
+    ore: /_ORE/,
+    metalbar: /_METALBAR/,
+    fiber: /_FIBER/,
+    hide: /_HIDE/,
+    leather: /_LEATHER/
+  },
+  tools: {
+    id: /_TOOL_/,
+    pick: /_PICK/,
+    sickle: /_SICKLE/,
+    knife: /_KNIFE/
+  }
+};
+
+// Cached results for already categorized items
+const categorizationCache = new Map<string, AlbionItem>();
+
 /**
  * Categorizes an item based on its ID and Name.
  * This is a fallback when the category/subCategory fields are "Unknown".
  */
 export function categorizeItem(item: AlbionItem): AlbionItem {
+  // Return cached result if available
+  if (categorizationCache.has(item.id)) {
+    return categorizationCache.get(item.id)!;
+  }
+
   if (item.category !== "Unknown" && item.subCategory !== "Unknown") {
+    categorizationCache.set(item.id, item);
     return item;
   }
 
-  const id = item.id.toUpperCase();
-  const name = item.name.toLowerCase();
+  const id = item.id;
+  const name = item.name;
 
   let category = item.category;
   let subCategory = item.subCategory;
 
   // Mounts
-  if (id.includes("_MOUNT_") || name.includes("horse") || name.includes("ox") || name.includes("stag") || name.includes("moose") || name.includes("dire")) {
+  if (PATTERNS.mounts.id.test(id) || PATTERNS.mounts.name.test(name)) {
     category = "Mounts";
-    if (name.includes("horse")) subCategory = "Riding Horse";
-    else if (name.includes("ox")) subCategory = "Transport Ox";
-    else if (name.includes("stag") || name.includes("moose")) subCategory = "Rare Mount";
+    if (/horse/i.test(name)) subCategory = "Riding Horse";
+    else if (/ox/i.test(name)) subCategory = "Transport Ox";
+    else if (/(stag|moose)/i.test(name)) subCategory = "Rare Mount";
     else subCategory = "Other Mount";
   }
   // Weapons
-  else if (id.includes("_MAIN_") || id.includes("_2H_") || id.includes("_OFF_")) {
+  else if (PATTERNS.weapons.id.test(id)) {
     category = "Weapons";
-    if (id.includes("_SWORD")) subCategory = "Swords";
-    else if (id.includes("_AXE")) subCategory = "Axes";
-    else if (id.includes("_MACE")) subCategory = "Maces";
-    else if (id.includes("_HAMMER")) subCategory = "Hammers";
-    else if (id.includes("_SPEAR")) subCategory = "Spears";
-    else if (id.includes("_BOW")) subCategory = "Bows";
-    else if (id.includes("_CROSSBOW")) subCategory = "Crossbows";
-    else if (id.includes("_STAFF")) {
-      if (id.includes("FIRE")) subCategory = "Fire Staffs";
-      else if (id.includes("HOLY")) subCategory = "Holy Staffs";
-      else if (id.includes("CURSE")) subCategory = "Cursed Staffs";
-      else if (id.includes("FROST")) subCategory = "Frost Staffs";
-      else if (id.includes("ARCANE")) subCategory = "Arcane Staffs";
-      else if (id.includes("NATURE")) subCategory = "Nature Staffs";
+    if (PATTERNS.weapons.sword.test(id)) subCategory = "Swords";
+    else if (PATTERNS.weapons.axe.test(id)) subCategory = "Axes";
+    else if (PATTERNS.weapons.mace.test(id)) subCategory = "Maces";
+    else if (PATTERNS.weapons.hammer.test(id)) subCategory = "Hammers";
+    else if (PATTERNS.weapons.spear.test(id)) subCategory = "Spears";
+    else if (PATTERNS.weapons.bow.test(id)) subCategory = "Bows";
+    else if (PATTERNS.weapons.crossbow.test(id)) subCategory = "Crossbows";
+    else if (PATTERNS.weapons.staff.test(id)) {
+      if (PATTERNS.weapons.fire.test(id)) subCategory = "Fire Staffs";
+      else if (PATTERNS.weapons.holy.test(id)) subCategory = "Holy Staffs";
+      else if (PATTERNS.weapons.curse.test(id)) subCategory = "Cursed Staffs";
+      else if (PATTERNS.weapons.frost.test(id)) subCategory = "Frost Staffs";
+      else if (PATTERNS.weapons.arcane.test(id)) subCategory = "Arcane Staffs";
+      else if (PATTERNS.weapons.nature.test(id)) subCategory = "Nature Staffs";
       else subCategory = "Staffs";
     }
     else subCategory = "Other Weapon";
   }
   // Armor
-  else if (id.includes("_HEAD_") || id.includes("_ARMOR_") || id.includes("_SHOES_")) {
+  else if (PATTERNS.armor.id.test(id)) {
     category = "Armor";
-    if (id.includes("_PLATE_")) subCategory = "Plate Armor";
-    else if (id.includes("_LEATHER_")) subCategory = "Leather Armor";
-    else if (id.includes("_CLOTH_")) subCategory = "Cloth Armor";
+    if (PATTERNS.armor.plate.test(id)) subCategory = "Plate Armor";
+    else if (PATTERNS.armor.leather.test(id)) subCategory = "Leather Armor";
+    else if (PATTERNS.armor.cloth.test(id)) subCategory = "Cloth Armor";
     else subCategory = "Other Armor";
   }
   // Accessories
-  else if (id.includes("_BAG") || id.includes("_CAPE")) {
+  else if (PATTERNS.accessories.bag.test(id) || PATTERNS.accessories.cape.test(id)) {
     category = "Accessories";
-    if (id.includes("_BAG")) subCategory = "Bags";
-    else if (id.includes("_CAPE")) subCategory = "Capes";
+    if (PATTERNS.accessories.bag.test(id)) subCategory = "Bags";
+    else if (PATTERNS.accessories.cape.test(id)) subCategory = "Capes";
   }
   // Consumables (Food & Potions)
-  else if (id.includes("_POTION_") || id.includes("_MEAL_") || id.includes("_FOOD_") || id.includes("_COOKED_")) {
+  else if (PATTERNS.consumables.potion.test(id) || PATTERNS.consumables.meal.test(id) || PATTERNS.consumables.food.test(id) || PATTERNS.consumables.cooked.test(id)) {
     category = "Consumables";
-    if (id.includes("_POTION_")) subCategory = "Potions";
-    else if (id.includes("_MEAL_") || id.includes("_FOOD_") || id.includes("_COOKED_")) subCategory = "Food";
+    if (PATTERNS.consumables.potion.test(id)) subCategory = "Potions";
+    else subCategory = "Food";
   }
   // Farm & Animals
-  else if (id.includes("_FARM_") || id.includes("_ANIMAL_") || id.includes("_EGG_") || id.includes("_MILK_") || id.includes("_MEAT_")) {
+  else if (PATTERNS.farm.animal.test(id) || PATTERNS.farm.egg.test(id) || PATTERNS.farm.milk.test(id) || PATTERNS.farm.meat.test(id) || PATTERNS.farm.farm.test(id)) {
     category = "Farm";
-    if (id.includes("_ANIMAL_")) subCategory = "Animals";
-    else if (id.includes("_EGG_") || id.includes("_MILK_") || id.includes("_MEAT_")) subCategory = "Animal Products";
+    if (PATTERNS.farm.animal.test(id)) subCategory = "Animals";
+    else if (PATTERNS.farm.egg.test(id) || PATTERNS.farm.milk.test(id) || PATTERNS.farm.meat.test(id)) subCategory = "Animal Products";
     else subCategory = "Farm Products";
   }
   // Resources
-  else if (id.includes("_WOOD") || id.includes("_ROCK") || id.includes("_ORE") || id.includes("_FIBER") || id.includes("_HIDE") || id.includes("_PLANKS") || id.includes("_STONEBLOCK") || id.includes("_METALBAR") || id.includes("_CLOTH") || id.includes("_LEATHER")) {
+  else if (PATTERNS.resources.wood.test(id) || PATTERNS.resources.planks.test(id) || PATTERNS.resources.rock.test(id) || PATTERNS.resources.stoneblock.test(id) || PATTERNS.resources.ore.test(id) || PATTERNS.resources.metalbar.test(id) || PATTERNS.resources.fiber.test(id) || PATTERNS.resources.hide.test(id) || PATTERNS.resources.leather.test(id)) {
     category = "Resources";
-    if (id.includes("_WOOD") || id.includes("_PLANKS")) subCategory = "Wood";
-    else if (id.includes("_ROCK") || id.includes("_STONEBLOCK")) subCategory = "Stone";
-    else if (id.includes("_ORE") || id.includes("_METALBAR")) subCategory = "Ore";
-    else if (id.includes("_FIBER") || id.includes("_CLOTH")) subCategory = "Fiber";
-    else if (id.includes("_HIDE") || id.includes("_LEATHER")) subCategory = "Hide";
+    if (PATTERNS.resources.wood.test(id) || PATTERNS.resources.planks.test(id)) subCategory = "Wood";
+    else if (PATTERNS.resources.rock.test(id) || PATTERNS.resources.stoneblock.test(id)) subCategory = "Stone";
+    else if (PATTERNS.resources.ore.test(id) || PATTERNS.resources.metalbar.test(id)) subCategory = "Ore";
+    else if (PATTERNS.resources.fiber.test(id)) subCategory = "Fiber";
+    else if (PATTERNS.resources.hide.test(id) || PATTERNS.resources.leather.test(id)) subCategory = "Hide";
   }
   // Gathering Tools
-  else if (id.includes("_TOOL_")) {
+  else if (PATTERNS.tools.id.test(id)) {
     category = "Gathering Tools";
-    if (id.includes("_PICK")) subCategory = "Pickaxe";
-    else if (id.includes("_AXE")) subCategory = "Woodaxe";
-    else if (id.includes("_SICKLE")) subCategory = "Sickle";
-    else if (id.includes("_KNIFE")) subCategory = "Skinning Knife";
-    else if (id.includes("_HAMMER")) subCategory = "Stone Hammer";
+    if (PATTERNS.tools.pick.test(id)) subCategory = "Pickaxe";
+    else if (PATTERNS.tools.axe.test(id)) subCategory = "Woodaxe";
+    else if (PATTERNS.tools.sickle.test(id)) subCategory = "Sickle";
+    else if (PATTERNS.tools.knife.test(id)) subCategory = "Skinning Knife";
+    else if (PATTERNS.weapons.hammer.test(id)) subCategory = "Stone Hammer";
     else subCategory = "Other Tool";
   }
 
-  return {
+  const result = {
     ...item,
     category: category === "Unknown" ? "Other" : category,
     subCategory: subCategory === "Unknown" ? "Other" : subCategory
   };
+
+  categorizationCache.set(item.id, result);
+  return result;
 }
 
 /**
  * Processes a list of items and categorizes them.
+ * Uses batch processing with cache warming for better performance.
  */
 export function processItems(items: AlbionItem[]): AlbionItem[] {
+  // Warm up cache for all items
   return items.map(categorizeItem);
+}
+
+/**
+ * Clears the categorization cache (useful for testing or memory management)
+ */
+export function clearCategorizationCache(): void {
+  categorizationCache.clear();
+}
+
+/**
+ * Returns cache statistics (useful for debugging)
+ */
+export function getCategorizationCacheStats(): { size: number } {
+  return { size: categorizationCache.size };
 }

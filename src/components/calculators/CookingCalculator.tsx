@@ -34,7 +34,7 @@ export default function CookingCalculator({ server, injectedItem, onItemInjected
   return (
     <BaseCalculator 
       server={server}
-      title="Items to Cook"
+      title="Cooking"
       icon={<ChefHat className="w-5 h-5 text-primary" />}
       storageKey="cooking"
       filterPredicate={filterPredicate}

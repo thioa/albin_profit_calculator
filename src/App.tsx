@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AppShell from "./components/layout/AppShell";
 import { AlbionServer } from "./types/albion";
 import { WatchlistProvider } from "./contexts/WatchlistContext";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function App() {
   const [server, setServer] = useState<AlbionServer>(() => {
@@ -14,13 +15,15 @@ export default function App() {
   }, [server]);
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary">
-      <WatchlistProvider server={server}>
-        <AppShell
-          server={server}
-          onServerChange={setServer}
-        />
-      </WatchlistProvider>
-    </div>
+    <TooltipProvider>
+      <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary/30 selection:text-primary dark">
+        <WatchlistProvider server={server}>
+          <AppShell
+            server={server}
+            onServerChange={setServer}
+          />
+        </WatchlistProvider>
+      </div>
+    </TooltipProvider>
   );
 }

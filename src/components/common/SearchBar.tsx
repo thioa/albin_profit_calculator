@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Fuse from "fuse.js";
-import { Search, Loader2, Filter, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import itemsDataRaw from "../../data/items-lite.json";
 import { processItems } from "../../lib/item-utils";
-import { Input, Select, Label } from "../ui";
+import { AlbionItem } from "../../types/albion";
 
 const itemsData = processItems(itemsDataRaw as AlbionItem[]).filter(i => i.name && i.id);
-import { AlbionItem } from "../../types/albion";
 
 interface SearchBarProps {
   onSelect: (item: AlbionItem) => void;
@@ -25,6 +24,8 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const resultsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -75,6 +76,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setActiveIndex(-1);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -98,36 +100,73 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen || results.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
+      resultsRef.current[activeIndex + 1]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+      resultsRef.current[activeIndex - 1]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault();
+      const item = results[activeIndex];
+      onSelect(item);
+      setQuery(item.name);
+      setIsOpen(false);
+      setActiveIndex(-1);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
   };
 
   return (
     <div className={`w-full relative ${isOpen ? "z-50" : "z-10"}`}>
       <div className="flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1 h-12" ref={containerRef}>
+        <div className="relative flex-1 h-11" ref={containerRef}>
           <div className="relative h-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
             <input
               type="text"
               value={query}
               onChange={handleSearch}
+              onKeyDown={handleKeyDown}
               onFocus={() => (query.length > 0 || selectedCategory) && setIsOpen(true)}
               placeholder="Search for an item (e.g. T4 Bag)..."
-              className="w-full h-12 glass-panel border border-primary/20 rounded-xl pl-12 pr-4 text-white text-sm font-medium placeholder:text-primary/30 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              className="w-full h-11 pl-11 pr-4 bg-black/40 border border-primary/20 rounded-xl text-primary text-sm font-medium placeholder:text-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
               aria-label="Search items"
+              aria-expanded={isOpen}
+              aria-controls="search-results"
+              aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
+              role="combobox"
             />
           </div>
 
           {isOpen && results.length > 0 && (
-            <div className="absolute z-50 w-full mt-2 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-y-auto max-h-80">
-              {results.map((item) => (
+            <div id="search-results" role="listbox" className="absolute z-50 w-full mt-2 glass-panel border border-primary/20 rounded-xl shadow-2xl overflow-y-auto max-h-80">
+              {results.map((item, idx) => (
                 <button
                   key={item.id}
+                  id={`search-result-${idx}`}
+                  ref={el => { resultsRef.current[idx] = el; }}
+                  role="option"
+                  aria-selected={activeIndex === idx}
                   onClick={() => {
                     onSelect(item);
                     setQuery(item.name);
                     setIsOpen(false);
+                    setActiveIndex(-1);
                   }}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-primary/10 hover:translate-x-1 transition-all text-left border-b border-primary/10 last:border-0 group/item min-h-12"
+                  className={`w-full flex items-center gap-4 p-3 hover:bg-primary/10 hover:translate-x-1 transition-all text-left border-b border-primary/10 last:border-0 group/item min-h-12 ${
+                    activeIndex === idx ? 'bg-primary/15 translate-x-1' : ''
+                  }`}
                 >
                   <img
                     src={item.icon}
@@ -155,15 +194,15 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                 setSelectedCategory(e.target.value);
                 setSelectedSubCategory("");
               }}
-              className="w-full h-12 appearance-none glass-panel border border-primary/20 rounded-xl pl-4 pr-10 text-white text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              className="w-full h-11 appearance-none bg-black/40 border border-primary/20 rounded-xl pl-4 pr-10 text-primary text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
               aria-label="Filter by category"
             >
-              <option value="">All Categories</option>
+              <option value="" className="text-primary/50">All Categories</option>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat} className="text-white bg-[#0a0e14]">{cat}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
           </div>
 
           <div className="relative min-w-40">
@@ -171,15 +210,15 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
               value={selectedSubCategory}
               onChange={(e) => setSelectedSubCategory(e.target.value)}
               disabled={!selectedCategory}
-              className="w-full h-12 appearance-none glass-panel border border-primary/20 rounded-xl pl-4 pr-10 text-white text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-11 appearance-none bg-black/40 border border-primary/20 rounded-xl pl-4 pr-10 text-primary text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               aria-label="Filter by sub-category"
             >
-              <option value="">All Sub-Cats</option>
+              <option value="" className="text-primary/50">All Sub-Cats</option>
               {subCategories.map(sub => (
-                <option key={sub} value={sub}>{sub}</option>
+                <option key={sub} value={sub} className="text-white bg-[#0a0e14]">{sub}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-5 h-5 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
           </div>
         </div>
       </div>

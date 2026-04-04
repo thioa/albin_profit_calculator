@@ -34,6 +34,7 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
   const [filterType, setFilterType] = useState<'all' | 'crafting' | 'refining' | 'cooking'>('all');
   const [showDrafts, setShowDrafts] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'profit' | 'name'>('date');
+  type SortOption = 'date' | 'profit' | 'name';
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
@@ -85,7 +86,7 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
         </div>
         <div>
           <h3 className="text-2xl font-black text-white uppercase tracking-tight">Sign In Required</h3>
-          <p className="text-primary/60 max-w-sm mx-auto mt-2 text-sm">
+          <p className="text-primary/70 max-w-sm mx-auto mt-2 text-sm">
             Login to save and manage your crafting plans — with all manual prices preserved.
           </p>
         </div>
@@ -135,7 +136,7 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
             <div className="flex-1">
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-bold text-primary/40 uppercase tracking-wider">Plan Storage</span>
-                <span className="text-xs font-bold text-primary/60">{finalisedCount} / {planLimit}</span>
+                <span className="text-xs font-bold text-primary/70">{finalisedCount} / {planLimit}</span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${finalisedCount >= planLimit ? 'bg-error' : 'bg-primary'}`}
@@ -172,10 +173,10 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
           <FileEdit className="w-3 h-3" /> Show Drafts
         </button>
 
-        <div className="flex items-center gap-2 glass-panel px-3 py-2 rounded-xl border border-primary/10">
-          <Filter className="w-3.5 h-3.5 text-primary/30" />
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-            className="bg-transparent text-xs font-bold text-primary/50 focus:outline-none cursor-pointer">
+        <div className="flex items-center gap-2 px-3 py-2 bg-black/40 border border-primary/20 rounded-xl">
+          <Filter className="w-3.5 h-3.5 text-primary/30 shrink-0" />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as SortOption)}
+            className="bg-black/30 text-xs font-bold text-primary/60 focus:outline-none cursor-pointer">
             <option value="date">Latest First</option>
             <option value="profit">By Profit</option>
             <option value="name">By Name</option>
@@ -186,11 +187,16 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
       {/* Empty state */}
       {plans.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 space-y-4 glass-panel rounded-3xl border border-dashed border-primary/10">
-          <div className="p-5 bg-primary/5 rounded-full"><Hammer className="w-10 h-10 text-primary/20" /></div>
+          {/* TODO: Replace with actual My Crafting illustration - recommended size: 150x150px */}
+          <img
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' rx='15' fill='%23151a21'/%3E%3Cpath d='M75 40 L95 70 L85 70 L85 110 L65 110 L65 70 L55 70 Z' fill='%23f59e0b' opacity='0.6'/%3E%3Crect x='55' y='115' width='40' height='8' rx='4' fill='%23333'/%3E%3C/svg%3E"
+            alt="My Crafting illustration"
+            className="w-32 h-32 opacity-60"
+          />
           <div className="text-center">
             <p className="text-white font-bold">No crafting plans saved yet</p>
             <p className="text-primary/40 text-sm mt-1 max-w-xs">
-              Go to Crafting, add items and set prices — they'll auto-save as a draft. Then click <strong className="text-primary/60">Finalize Plan</strong> to name and keep it.
+              Go to Crafting, add items and set prices — they'll auto-save as a draft. Then click <strong className="text-primary/70">Finalize Plan</strong> to name and keep it.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-primary/25 uppercase tracking-widest">

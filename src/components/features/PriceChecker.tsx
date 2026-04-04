@@ -7,6 +7,7 @@ import SearchBar from "../common/SearchBar";
 import PriceCard from "../common/PriceCard";
 import { Loader2, Settings, Info, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
 
 interface PriceCheckerProps {
   server: AlbionServer;
@@ -101,12 +102,12 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
               <img src={selectedItem.icon} alt={selectedItem.name} className="w-32 h-32 object-contain relative z-10" referrerPolicy="no-referrer" />
             </div>
             <div className="text-center md:text-left space-y-2">
-              <h2 className="text-4xl font-black text-white uppercase italic tracking-tight">{selectedItem.name}</h2>
+              <h2 className="text-4xl font-black text-foreground uppercase italic tracking-tight">{selectedItem.name}</h2>
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                <span className="bg-gray-800 text-on-surface px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Tier {selectedItem.tier}</span>
-                <span className="bg-gray-800 text-on-surface px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">{selectedItem.id}</span>
+                <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Tier {selectedItem.tier}</span>
+                <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">{selectedItem.id}</span>
                 <div className="relative group">
-                  <span className="bg-gray-800 text-on-surface px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest cursor-help">{selectedItem.category}</span>
+                  <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest cursor-help">{selectedItem.category}</span>
                   {selectedItem.category === "Unknown" && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black border border-primary/10 rounded text-[10px] text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                       This item's category is not specified in our simplified dataset.
@@ -118,7 +119,7 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
                 </span>
               </div>
             </div>
-            <div className="md:ml-auto flex items-center gap-2 text-primary/50 text-xs bg-black/20 p-4 rounded-2xl border border-white/5">
+            <div className="md:ml-auto flex items-center gap-2 text-primary/50 text-xs bg-muted/30 p-4 rounded-2xl border border-border">
               <Info className="w-4 h-4" />
               <p className="max-w-50">Data is crowdsourced via AODP. Prices may vary slightly from in-game values.</p>
             </div>
@@ -131,13 +132,13 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
               <p className="text-primary/50 font-mono uppercase tracking-widest animate-pulse">Fetching Market Data...</p>
             </div>
           ) : error ? (
-            <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-3xl text-center space-y-4">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-              <p className="text-red-500 font-bold">{error}</p>
-              <button onClick={loadPrices} className="bg-red-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-600 transition-colors">Retry</button>
+            <div className="bg-destructive/10 border border-destructive/50 p-8 rounded-3xl text-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+              <p className="text-destructive font-bold">{error}</p>
+              <Button variant="destructive" onClick={loadPrices}>Retry</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               {prices.map(price => (
                 <PriceCard
                   key={price.city}
@@ -159,11 +160,14 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
           animate={{ opacity: 1 }}
           className="py-32 text-center space-y-4 border-2 border-dashed border-primary/10 rounded-3xl"
         >
-          <div className="glass-panel w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20">
-            <Settings className="w-10 h-10 text-gray-600 animate-spin-slow" />
-          </div>
+          {/* TODO: Replace with actual empty state illustration - recommended size: 200x200px */}
+          <img
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' rx='20' fill='%23151a21'/%3E%3Ccircle cx='100' cy='80' r='40' fill='none' stroke='%23f59e0b' stroke-width='4' stroke-dasharray='8 4'/%3E%3Cpath d='M100 50 L100 110 M70 80 L130 80' stroke='%23f59e0b' stroke-width='4' stroke-linecap='round'/%3E%3Crect x='60' y='130' width='80' height='12' rx='6' fill='%23333'/%3E%3Crect x='70' y='150' width='60' height='8' rx='4' fill='%23222'/%3E%3C/svg%3E"
+            alt="Empty state illustration"
+            className="w-40 h-40 mx-auto mb-6 opacity-50"
+          />
           <h3 className="text-2xl font-bold text-primary/50 uppercase tracking-widest">Select an item to begin</h3>
-          <p className="text-gray-600 max-w-xs mx-auto">Use the search bar above to find items from the Royal Cities and Caerleon.</p>
+          <p className="text-muted-foreground max-w-xs mx-auto">Use the search bar above to find items from the Royal Cities and Caerleon.</p>
         </motion.div>
       )}
     </div>

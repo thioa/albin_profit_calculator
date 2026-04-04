@@ -69,7 +69,7 @@ export default function Library() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {/* How to Craft */}
               <div className="glass-panel border border-primary/10 rounded-2xl overflow-hidden flex flex-col">
                 <div className="bg-black/30 p-4 border-b border-primary/10 text-sm font-black text-primary/60 uppercase tracking-widest flex items-center gap-2">

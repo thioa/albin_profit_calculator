@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { AlbionCity, AlbionItem, ItemQuality, ALBION_CITIES } from "../types/albion";
-import { VerificationStatus, SortOption } from "../components/features/MarketOpportunities";
+import { VerificationStatus, SortOption } from "../components/features/TopFlipping";
 import itemsDataRaw from "../data/items-lite.json";
 import { processItems } from "../lib/item-utils";
 

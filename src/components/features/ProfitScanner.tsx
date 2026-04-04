@@ -19,7 +19,7 @@ interface CraftingRecommendationsProps {
   isPremium: boolean;
 }
 
-export default function CraftingRecommendations({ server, isPremium }: CraftingRecommendationsProps) {
+export default function ProfitScanner({ server, isPremium }: CraftingRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [backgroundScan, setBackgroundScan] = useState(false);

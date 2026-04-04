@@ -11,7 +11,7 @@ export default function RefiningCalculator({ server, injectedItem, onItemInjecte
   return (
     <BaseCalculator 
       server={server}
-      title="Items to Refine"
+      title="Refining"
       icon={<Pickaxe className="w-5 h-5 text-primary" />}
       storageKey="refining"
       filterPredicate={filterPredicate}

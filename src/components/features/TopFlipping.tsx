@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { AlbionPrice, AlbionCity, AlbionServer, ItemQuality, AlbionItem } from "../../types/albion";
 import { fetchPrices, fetchHistory } from "../../lib/albion-api";
 import { calculateProfit, formatSilver, formatTimeAgo, getFreshnessLevel, getProfitPercentage, FreshnessLevel, getQualityName } from "../../lib/economy-utils";
 import { HOT_ITEMS } from "../../config/constants";
 import itemsDataRaw from "../../data/items-lite.json";
 import { processItems } from "../../lib/item-utils";
-import { Loader2, RefreshCw, Info, Clock, ArrowRight, Zap, TrendingUp, AlertTriangle, ShieldCheck, Star, ShieldAlert } from "lucide-react";
+import { Loader2, RefreshCw, Info, Clock, ArrowRight, Zap, AlertTriangle, ShieldCheck, Star, ShieldAlert, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useWatchlist } from "../../contexts/WatchlistContext";
 import { motion } from "motion/react";
@@ -32,12 +32,14 @@ interface Opportunity {
   freshness: FreshnessLevel;
   quality: number;
   historicalAvg?: number;
-  historicalCount?: number;
+  historicalCount?: number; // 24h volume at sell city
+  demandLevel?: 'hot' | 'warm' | 'cold'; // high/medium/low demand
   verificationStatus?: 'verified' | 'suspicious' | 'unknown';
 }
 
 export type VerificationStatus = 'verified' | 'suspicious' | 'unknown';
 export type SortOption = 'profit' | 'roi' | 'freshness' | 'demand';
+export type ColumnSort = 'name' | 'buyCity' | 'sellCity' | 'volume' | 'roi' | 'age' | 'profit';
 
 interface MarketOpportunitiesProps {
   server: AlbionServer;
@@ -62,11 +64,25 @@ export default function TopFlipping({
     const saved = localStorage.getItem("albion_display_limit");
     return saved !== null ? JSON.parse(saved) : 0; // 0 = show all
   });
+  const [columnSort, setColumnSort] = useState<ColumnSort>('profit');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [filterBuyCity, setFilterBuyCity] = useState<string>('');
+  const [filterSellCity, setFilterSellCity] = useState<string>('');
+
+  const handleSort = (col: ColumnSort) => {
+    if (columnSort === col) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setColumnSort(col);
+      setSortDir(['name', 'buyCity', 'sellCity'].includes(col) ? 'asc' : 'desc');
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [backgroundScan, setBackgroundScan] = useState(false);
   const [cacheAge, setCacheAge] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scanIdRef = React.useRef(0);
+  const dataGenRef = React.useRef(0); // increments each scan; stale verifyHistory results are discarded
   const { user, toggleWatchlist } = useAuth();
   const { addNotification } = useWatchlist();
 
@@ -76,7 +92,7 @@ export default function TopFlipping({
     return map;
   }, []);
 
-  // ─── Build item list from HOT_ITEMS + filters ─────────────────────────────
+  // â”€â”€â”€ Build item list from HOT_ITEMS + filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buildItemList = () => {
     const ids: string[] = [];
     HOT_ITEMS.forEach(baseId => {
@@ -91,7 +107,7 @@ export default function TopFlipping({
     return ids;
   };
 
-  // ─── Core: Convert raw price data → Opportunity[] ──────────────────────────
+  // â”€â”€â”€ Core: Convert raw price data â†’ Opportunity[] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buildOpportunities = (data: any[]): Opportunity[] => {
     const grouped = data.reduce((acc, curr) => {
       if (!acc[curr.item_id]) acc[curr.item_id] = [];
@@ -148,15 +164,21 @@ export default function TopFlipping({
     return Object.values(dedup).sort((a, b) => b.finalProfit - a.finalProfit);
   };
 
-  // ─── Historical verification pass ──────────────────────────────────────────
+  // â”€â”€â”€ Historical verification pass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const verifyWithHistory = async (opps: Opportunity[], scanId: number): Promise<Opportunity[]> => {
+    console.log('[Demand] verifyWithHistory START, opps count:', opps.length, 'scanId:', scanId, 'currentScanIdRef:', scanIdRef.current);
     const top = opps.slice(0, 30);
+    console.log('[Demand] processing top', top.length, 'opportunities');
     const cache = new Map<string, any>();
     const verified: Opportunity[] = [];
     const CHUNK = 10;
 
     for (let i = 0; i < top.length; i += CHUNK) {
-      if (scanId !== scanIdRef.current) return opps; // aborted
+      // scanId === -1 means "never abort" (used by the dedicated useEffect)
+      if (scanId !== -1 && scanId !== scanIdRef.current) {
+        console.log('[Demand] ABORTED â€” scanId mismatch', scanId, '!=', scanIdRef.current);
+        return opps;
+      }
       const chunk = top.slice(i, i + CHUNK);
       const results = await Promise.all(chunk.map(async opp => {
         try {
@@ -167,18 +189,53 @@ export default function TopFlipping({
             cache.set(key, h);
           }
           if (h?.length > 0 && h[0].data.length > 0) {
-            const pts = h[0].data.slice(-72);
-            const avgPrice = pts.reduce((s: number, p: any) => s + p.avg_price, 0) / pts.length;
-            const avgVol = pts.reduce((s: number, p: any) => s + p.item_count, 0) / (pts.length / 24 || 1);
+            const allPts = h[0].data;
+
+            // Auto-detect data resolution: figure out how many data points per day
+            // by looking at timestamp gaps in the first few points
+            const ptsPerDay = (() => {
+              if (allPts.length < 2) return 1;
+              const first = new Date(allPts[0]?.timestamp).getTime();
+              const second = new Date(allPts[1]?.timestamp).getTime();
+              if (!first || !second || second === first) return 1;
+              const hoursDiff = (second - first) / 3600000;
+              return Math.max(1, Math.round(24 / hoursDiff));
+            })();
+
+            const estimatedDays = Math.max(allPts.length / ptsPerDay, 1);
+            const avgDailyVol = allPts.reduce((s: number, p: any) => s + p.item_count, 0) / estimatedDays;
+            const avgPrice = allPts.reduce((s: number, p: any) => s + p.avg_price, 0) / allPts.length;
+
+            // Take the last "ptsPerDay" points as "last 24h" to match actual resolution
+            const lastN = Math.min(ptsPerDay, allPts.length);
+            const last24h = allPts.slice(-lastN);
+            const vol24h = last24h.reduce((s: number, p: any) => s + p.item_count, 0);
+
+            // Demand: compare last 24h vs average daily volume
+            let demandLevel: 'hot' | 'warm' | 'cold' = 'cold';
+            if (avgDailyVol < 1) {
+              demandLevel = 'warm'; // sparse â€” don't penalize
+            } else if (vol24h >= avgDailyVol * 1.5) {
+              demandLevel = 'hot';
+            } else if (vol24h >= avgDailyVol * 0.5) {
+              demandLevel = 'warm';
+            }
+
             const diff = Math.abs(opp.sellPrice - avgPrice) / avgPrice;
+            console.log(`[Demand] ${opp.itemName} @ ${opp.sellCity}: vol24h=${vol24h}, avgDaily=${avgDailyVol.toFixed(0)}, level=${demandLevel}, pts=${allPts.length}, ptsPerDay=${ptsPerDay}`);
             return {
               ...opp,
               historicalAvg: avgPrice,
-              historicalCount: Math.round(avgVol),
+              historicalCount: Math.round(vol24h),
+              demandLevel,
               verificationStatus: diff < 0.3 ? 'verified' : (opp.sellPrice > avgPrice * 2 || opp.sellPrice < avgPrice * 0.5) ? 'suspicious' : 'unknown',
             } as Opportunity;
+          } else {
+            console.log(`[Demand] NO DATA for ${opp.itemName} @ ${opp.sellCity}: h=`, h);
           }
-        } catch {}
+        } catch (e) {
+          console.log(`[Demand] ERROR for ${opp.itemName}:`, e);
+        }
         return { ...opp, verificationStatus: 'unknown' as const };
       }));
       verified.push(...results);
@@ -186,10 +243,11 @@ export default function TopFlipping({
     }
     // append un-verified rest
     verified.push(...opps.slice(30).map(o => ({ ...o, verificationStatus: 'unknown' as const })));
+    console.log('[Demand] DONE, verified count:', verified.length);
     return verified;
   };
 
-  // ─── Main scan with progressive caching ────────────────────────────────────
+  // â”€â”€â”€ Main scan with progressive caching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const scanOpportunities = async (forceRefresh = false) => {
     const currentScanId = ++scanIdRef.current;
     setError(null);
@@ -208,7 +266,7 @@ export default function TopFlipping({
           setOpportunities(fromCache);
           setCacheAge(new Date());
         }
-        if (staleIds.length === 0) return; // 100% cache hit — done
+        if (staleIds.length === 0) return; // 100% cache hit â€” verifyHistory effect handles the rest
 
         // Background-refresh only the stale items
         setBackgroundScan(true);
@@ -219,13 +277,14 @@ export default function TopFlipping({
           const combined = buildOpportunities([...cached.filter(c => !staleIds.includes(c.item_id)), ...fresh]);
           if (combined.length > 0) setOpportunities(combined);
           setCacheAge(new Date());
-        } catch { /* keep showing cached */ }
-        setBackgroundScan(false);
+        } catch { /* keep showing cached */ } finally {
+          setBackgroundScan(false);
+        }
         return;
       }
     }
 
-    // Step 2: Full fetch — nothing in cache
+    // Step 2: Full fetch â€” nothing in cache
     setLoading(true);
     try {
       const data = await fetchPrices(ids, selectedCities, qualities, server);
@@ -235,13 +294,6 @@ export default function TopFlipping({
       const rawOpps = buildOpportunities(data);
       setOpportunities(rawOpps);
       setLoading(false);
-
-      // Kick off history verification
-      const verified = await verifyWithHistory(rawOpps, currentScanId);
-      if (currentScanId === scanIdRef.current) {
-        const filtered = verified.filter(o => allowedStatuses.includes(o.verificationStatus || 'unknown'));
-        setOpportunities(filtered.length > 0 ? filtered : verified);
-      }
     } catch (err) {
       if (currentScanId === scanIdRef.current) {
         setError("Failed to fetch opportunities. Please try again.");
@@ -255,36 +307,85 @@ export default function TopFlipping({
     return () => clearTimeout(timer);
   }, [server, selectedCities, qualities, maxAgeHours, hideSuspicious, allowedStatuses, preferredEnchantments, selectedCategories, selectedSubCategory]);
 
+  // â”€â”€â”€ Dedicated effect: fetch history independently (decoupled from scan) â”€â”€â”€
+  useEffect(() => {
+    if (opportunities.length === 0) return;
+
+    const myGen = ++dataGenRef.current;
+    let cancelled = false;
+    let mounted = true;
+
+    const run = async () => {
+      // Small delay to let the UI render first
+      await new Promise(r => setTimeout(r, 800));
+      if (cancelled || !mounted) return;
+
+      console.log('[Demand] effect START, gen:', myGen, 'opps:', opportunities.length);
+      const verified = await verifyWithHistory(opportunities, -1); // -1 = never aborts from scanId
+      if (!mounted || cancelled) return;
+
+      // Discard if a newer scan has since updated opportunities
+      if (myGen !== dataGenRef.current) {
+        console.log('[Demand] effect DISCARDED, stale gen', myGen, 'vs current', dataGenRef.current);
+        return;
+      }
+
+      const filtered = verified.filter(o => allowedStatuses.includes(o.verificationStatus || 'unknown'));
+      setOpportunities(filtered.length > 0 ? filtered : verified);
+      console.log('[Demand] effect DONE, verified:', verified.length, 'gen:', myGen);
+    };
+
+    run();
+    return () => { cancelled = true; mounted = false; };
+  }, [opportunities.length]);
+
   // Persist displayLimit
   useEffect(() => {
     localStorage.setItem("albion_display_limit", JSON.stringify(displayLimit));
   }, [displayLimit]);
 
-  // ─── Sort ─────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Unique cities for dropdown filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const uniqueBuyCities = useMemo(() => [...new Set(opportunities.map(o => o.buyCity))].sort(), [opportunities]);
+  const uniqueSellCities = useMemo(() => [...new Set(opportunities.map(o => o.sellCity))].sort(), [opportunities]);
+
+  // â”€â”€â”€ Sort + Filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sortedOpportunities = useMemo(() => {
+    const dir = sortDir === 'desc' ? -1 : 1;
     return [...opportunities].sort((a, b) => {
-      switch (sortBy) {
-        case 'roi': return b.profitPercent - a.profitPercent;
-        case 'freshness': {
+      switch (columnSort) {
+        case 'name':    return dir * a.itemName.localeCompare(b.itemName);
+        case 'buyCity': return dir * a.buyCity.localeCompare(b.buyCity);
+        case 'sellCity':return dir * a.sellCity.localeCompare(b.sellCity);
+        case 'volume':  return dir * ((a.historicalCount || 0) - (b.historicalCount || 0));
+        case 'roi':     return dir * (a.profitPercent - b.profitPercent);
+        case 'age': {
           const levels: FreshnessLevel[] = ["excellent", "good", "fair", "stale"];
-          return levels.indexOf(a.freshness) - levels.indexOf(b.freshness);
+          return dir * (levels.indexOf(a.freshness) - levels.indexOf(b.freshness));
         }
-        case 'demand': return (b.historicalCount || 0) - (a.historicalCount || 0);
-        default: return b.finalProfit - a.finalProfit;
+        case 'profit':  return dir * (a.finalProfit - b.finalProfit);
+        default:        return dir * (a.finalProfit - b.finalProfit);
       }
     });
-  }, [opportunities, sortBy]);
+  }, [opportunities, columnSort, sortDir]);
+
+  const filteredOpportunities = useMemo(() => {
+    return sortedOpportunities.filter(o => {
+      if (filterBuyCity && o.buyCity !== filterBuyCity) return false;
+      if (filterSellCity && o.sellCity !== filterSellCity) return false;
+      return true;
+    });
+  }, [sortedOpportunities, filterBuyCity, filterSellCity]);
 
   const getFreshnessUI = (level: FreshnessLevel) => {
     switch (level) {
       case "excellent": return { color: "text-green-500", label: "Excellent", icon: ShieldCheck, description: "Data is < 1 hour old. Very high accuracy." };
       case "good":      return { color: "text-blue-500",  label: "Good",      icon: ShieldCheck, description: "Data is < 6 hours old. Generally reliable." };
-      case "fair":      return { color: "text-yellow-500",label: "Fair",      icon: ShieldAlert, description: "Data is 6–24 hours old. Market may have shifted." };
+      case "fair":      return { color: "text-yellow-500",label: "Fair",      icon: ShieldAlert, description: "Data is 6â€“24 hours old. Market may have shifted." };
       case "stale":     return { color: "text-red-500",   label: "Stale",     icon: ShieldAlert, description: "Data is > 24 hours old. High risk of inaccuracy." };
     }
   };
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="space-y-4">
 
@@ -298,9 +399,9 @@ export default function TopFlipping({
             Identify price discrepancies between cities for profitable flipping.
           </p>
           {cacheAge && (
-            <p className="text-primary/25 text-[10px] flex items-center gap-1 mt-1">
+            <p className="text-primary/25 text-label flex items-center gap-1 mt-1">
               <Clock className="w-3 h-3" />
-              {backgroundScan ? "Refreshing stale items..." : `Cached ${Math.round((Date.now() - cacheAge.getTime()) / 60000)}m ago • 15-min TTL`}
+              {backgroundScan ? "Refreshing stale items..." : `Cached ${Math.round((Date.now() - cacheAge.getTime()) / 60000)}m ago â€¢ 15-min TTL`}
             </p>
           )}
         </div>
@@ -310,19 +411,19 @@ export default function TopFlipping({
           {backgroundScan && (
             <div className="flex items-center gap-1 sm:gap-2 glass-panel px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-primary/10">
               <RefreshCw className="w-3 h-3.5 text-primary animate-spin" />
-              <span className="text-[10px] sm:text-[10px] font-black text-primary/50 uppercase tracking-widest hidden sm:inline">Updating...</span>
+              <span className="text-label sm:text-label font-black text-primary/75 uppercase tracking-widest hidden sm:inline">Updating...</span>
             </div>
           )}
 
           {/* Showing count */}
           <div className="flex items-center gap-1 sm:gap-2 glass-panel px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-primary/10">
-            <span className="text-primary/40 text-[10px] sm:text-xs font-bold uppercase tracking-widest hidden sm:inline">Showing</span>
-            <span className="text-foreground font-black text-xs sm:text-sm">{displayLimit === 0 ? sortedOpportunities.length : Math.min(displayLimit, sortedOpportunities.length)}</span>
-            <span className="text-primary/30 text-[10px] sm:text-xs hidden sm:inline">of</span>
-            <span className="text-primary font-black text-xs sm:text-sm">{sortedOpportunities.length}</span>
+            <span className="text-primary/70 text-label sm:text-xs font-bold uppercase tracking-widest hidden sm:inline">Showing</span>
+            <span className="text-foreground font-black text-xs sm:text-sm">{displayLimit === 0 ? filteredOpportunities.length : Math.min(displayLimit, filteredOpportunities.length)}</span>
+            <span className="text-primary/30 text-label sm:text-xs hidden sm:inline">of</span>
+            <span className="text-primary font-black text-xs sm:text-sm">{filteredOpportunities.length}</span>
             <div className="w-px h-3 sm:h-4 bg-primary/10 mx-1 hidden sm:block" />
             <select value={displayLimit} onChange={e => setDisplayLimit(Number(e.target.value))}
-              className="bg-transparent text-primary/60 text-[10px] sm:text-xs font-bold uppercase tracking-widest focus:outline-none cursor-pointer hover:text-primary transition-colors">
+              className="bg-transparent text-primary/60 text-label sm:text-xs font-bold uppercase tracking-widest focus:outline-none cursor-pointer hover:text-primary transition-colors border border-transparent hover:border-primary/20 rounded px-1 py-0.5">
               <option value={0}>All</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -334,9 +435,111 @@ export default function TopFlipping({
           <button onClick={() => { clearAllPrices(); scanOpportunities(true); }} disabled={loading}
             className={`flex items-center gap-1 sm:gap-2 glass-panel px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-primary/10 transition-colors ${loading ? 'text-primary/30 cursor-not-allowed' : 'text-primary/60 hover:text-white hover:border-primary/40'}`}>
             <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{loading ? 'Scan' : 'Refresh'}</span>
+            <span className="text-label sm:text-xs font-bold uppercase tracking-widest">{loading ? 'Scan' : 'Refresh'}</span>
           </button>
         </div>
+      </div>
+
+      {/* â”€â”€â”€ Sort Bar Header (desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div className="hidden lg:flex items-stretch glass-panel border border-white/10 rounded-xl overflow-hidden min-h-10">
+        {/* Status strip placeholder */}
+        <div className="w-1 shrink-0 bg-primary/10" />
+        {/* Icon placeholder */}
+        <div className="w-14.5 shrink-0" />
+
+        {/* Name */}
+        <div className="flex-3 flex items-center border-r border-white/5 px-2">
+          {(() => { const a = columnSort==='name'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('name')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              Name <I className="w-3 h-3" />
+            </button>
+          ); })()}
+        </div>
+
+        {/* Buy City */}
+        <div className="flex-2 flex items-center gap-2 border-r border-white/5 px-2">
+          {(() => { const a = columnSort==='buyCity'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('buyCity')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+              Buy <I className="w-3 h-3" />
+            </button>
+          ); })()}
+          <select value={filterBuyCity} onChange={e=>setFilterBuyCity(e.target.value)}
+            className={`text-tiny font-bold uppercase tracking-widest bg-transparent focus:outline-none cursor-pointer border rounded px-1 py-0.5 transition-colors max-w-17.5 ${ filterBuyCity ? 'text-primary border-primary/40 bg-primary/5' : 'text-primary/60 border-primary/20 hover:text-primary/90' }`}>
+            <option value="">All</option>
+            {uniqueBuyCities.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        {/* Arrow spacer */}
+        <div className="w-7 shrink-0" />
+
+        {/* Sell City */}
+        <div className="flex-2 flex items-center gap-2 border-r border-white/5 px-2">
+          {(() => { const a = columnSort==='sellCity'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('sellCity')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              Sell <I className="w-3 h-3" />
+            </button>
+          ); })()}
+          <select value={filterSellCity} onChange={e=>setFilterSellCity(e.target.value)}
+            className={`text-tiny font-bold uppercase tracking-widest bg-transparent focus:outline-none cursor-pointer border rounded px-1 py-0.5 transition-colors max-w-17.5 ${ filterSellCity ? 'text-primary border-primary/40 bg-primary/5' : 'text-primary/60 border-primary/20 hover:text-primary/90' }`}>
+            <option value="">All</option>
+            {uniqueSellCities.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        {/* Volume */}
+        <div className="flex-1 flex items-center justify-center border-r border-white/5">
+          {(() => { const a = columnSort==='volume'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('volume')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              Volume <I className="w-3 h-3" />
+            </button>
+          ); })()}
+        </div>
+
+        {/* ROI */}
+        <div className="flex-1 flex items-center justify-center border-r border-white/5">
+          {(() => { const a = columnSort==='roi'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('roi')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              ROI <I className="w-3 h-3" />
+            </button>
+          ); })()}
+        </div>
+
+        {/* Age */}
+        <div className="flex-1 flex items-center justify-center border-r border-white/5">
+          {(() => { const a = columnSort==='age'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('age')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              Age <I className="w-3 h-3" />
+            </button>
+          ); })()}
+        </div>
+
+        {/* Profit */}
+        <div className="flex-[1.5] flex items-center justify-center">
+          {(() => { const a = columnSort==='profit'; const I = a?(sortDir==='desc'?ArrowDown:ArrowUp):ArrowUpDown; return (
+            <button onClick={()=>handleSort('profit')} className={`flex items-center gap-1 text-label font-bold uppercase tracking-widest transition-colors ${a?'text-primary':'text-primary/30 hover:text-primary/70'}`}>
+              Profit <I className="w-3 h-3" />
+            </button>
+          ); })()}
+        </div>
+      </div>
+
+      {/* Mobile sort bar */}
+      <div className="flex lg:hidden flex-wrap items-center gap-1.5 px-1">
+        <span className="text-label text-primary/30 font-bold uppercase tracking-widest mr-1 shrink-0">Sort</span>
+        {(['name','buyCity','sellCity','volume','roi','age','profit'] as ColumnSort[]).map(key => {
+          const label = { name:'Name', buyCity:'Buy', sellCity:'Sell', volume:'Vol', roi:'ROI', age:'Age', profit:'Profit' }[key];
+          const isActive = columnSort === key;
+          const Icon = isActive ? (sortDir === 'desc' ? ArrowDown : ArrowUp) : ArrowUpDown;
+          return (
+            <button key={key} onClick={() => handleSort(key)}
+              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-md text-label font-bold uppercase tracking-wider transition-all duration-200 border ${ isActive ? 'bg-primary text-black border-primary' : 'border-white/10 text-primary/70 hover:text-primary' }`}>
+              {label}<Icon className="w-2.5 h-2.5" />
+            </button>
+          );
+        })}
       </div>
 
       {/* Loading skeletons */}
@@ -382,14 +585,14 @@ export default function TopFlipping({
             className="w-32 h-32 opacity-60"
           />
           <p className="text-foreground font-bold">Scanning for opportunities...</p>
-          <p className="text-primary/40 text-sm">Please wait while we analyze the market.</p>
+          <p className="text-primary/70 text-sm">Please wait while we analyze the market.</p>
         </div>
       )}
 
       {/* Results */}
       {!loading && !error && opportunities.length > 0 && (
-        <div className="grid grid-cols-1 gap-3">
-          {(displayLimit === 0 ? sortedOpportunities : sortedOpportunities.slice(0, displayLimit)).map((opp, idx) => {
+        <div className="grid grid-cols-1 gap-2">
+          {(displayLimit === 0 ? filteredOpportunities : filteredOpportunities.slice(0, displayLimit)).map((opp, idx) => {
             const freshnessUI = getFreshnessUI(opp.freshness);
             const isSuspicious = opp.profitPercent > 100 || opp.verificationStatus === 'suspicious';
             const isVerified = opp.verificationStatus === 'verified';
@@ -400,91 +603,112 @@ export default function TopFlipping({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                className={`group relative glass-panel border border-white/10 rounded-xl overflow-hidden transition-all duration-300 hover:border-primary/30 ${
+                className={`group relative glass-panel border border-white/10 rounded-xl transition-all duration-300 hover:border-primary/30 ${
                   isSuspicious ? "border-red-500/30" : isVerified ? "border-green-500/30" : ""
                 }`}
               >
-                {/* Desktop: Single row layout */}
-                <div className="hidden lg:flex items-stretch gap-0">
-                  {/* Status indicator */}
-                  <div className={`w-1 shrink-0 ${isSuspicious ? "bg-red-500" : isVerified ? "bg-green-500" : "bg-primary/30"}`} />
+                {/* Desktop: Full-width flex row â€” matches sort bar flex proportions exactly */}
+                <div className="hidden lg:flex items-stretch w-full min-h-15.5">
 
-                  {/* Icon */}
-                  <div className="flex items-center pl-4 pr-3">
+                  {/* Status strip */}
+                  <div className={`w-1 shrink-0 ${isSuspicious ? 'bg-red-500' : isVerified ? 'bg-green-500' : 'bg-primary/30'}`} />
+
+                  {/* Icon (w-14.5) */}
+                  <div className="w-14.5 shrink-0 flex items-center pl-2 pr-1">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-xl bg-muted/30 border border-border overflow-hidden">
-                        <img src={opp.icon} alt={opp.itemName} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                      <div className="w-10 h-10 rounded-lg bg-muted/30 border border-border overflow-hidden shrink-0">
+                        <img src={opp.icon} alt={opp.itemName} className="w-full h-full object-contain p-0.5" referrerPolicy="no-referrer" />
                       </div>
-                      {isSuspicious && <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-[#0d0d0f]"><AlertTriangle className="w-2.5 h-2.5 text-white" /></div>}
-                      {isVerified && !isSuspicious && <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-[#0d0d0f]"><ShieldCheck className="w-2.5 h-2.5 text-white" /></div>}
+                      {isSuspicious && <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 border-2 border-[#0d0d0f]"><AlertTriangle className="w-2 h-2 text-white" /></div>}
+                      {isVerified && !isSuspicious && <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-[#0d0d0f]"><ShieldCheck className="w-2 h-2 text-white" /></div>}
                     </div>
                   </div>
 
-                  {/* Item info */}
-                  <div className="flex flex-col justify-center min-w-0 px-4 border-r border-white/5">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-foreground font-bold text-sm truncate group-hover:text-primary transition-colors">{opp.itemName}</h4>
-                      <button onClick={e => { e.stopPropagation(); if (!user) { alert("Please login to watchlist items."); return; } toggleWatchlist(opp.itemId); if (!user.watchlist.includes(opp.itemId)) addNotification(opp.itemId, opp.itemName, `Added ${opp.itemName} to your watchlist.`, 'system'); }}
-                        className={`p-1 rounded transition-all ${user?.watchlist.includes(opp.itemId) ? "text-primary" : "text-primary/20 hover:text-primary"}`}>
-                        <Star className={`w-4 h-4 ${user?.watchlist.includes(opp.itemId) ? "fill-current" : ""}`} />
-                      </button>
+                  {/* Name (flex-3) */}
+                  <div className="flex-3 flex flex-col justify-center min-w-0 px-3 border-r border-white/5">
+                    {/* CSS Tooltip wrapper */}
+                    <div className="relative group/tooltip min-w-0">
+                      <h4 className="text-foreground font-bold text-sm truncate group-hover:text-primary transition-colors">
+                        {opp.itemName}
+                      </h4>
+                      {/* Tooltip popup */}
+                      <div className="absolute bottom-full left-0 mb-2 z-999 pointer-events-none opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150">
+                        <div className="bg-[#0a0e14] border border-primary/30 rounded-lg px-3 py-2 shadow-2xl whitespace-nowrap">
+                          <span className="text-xs text-foreground font-semibold">{opp.itemName}</span>
+                          <div className="absolute top-full left-4 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-primary/30" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-primary/60 font-medium">{getQualityName(opp.quality)}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isSuspicious ? 'bg-red-500/10 text-red-400 border border-red-500/30' : isVerified ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-muted/30 text-muted-foreground border border-border'}`}>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-label text-primary/75 font-medium">{getQualityName(opp.quality)}</span>
+                      <span className={`text-tiny font-bold px-1.5 py-0.5 rounded-full shrink-0 ${isSuspicious ? 'bg-red-500/10 text-red-400 border border-red-500/30' : isVerified ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-muted/30 text-muted-foreground border border-border'}`}>
                         {opp.verificationStatus || 'unknown'}
                       </span>
+                      <button onClick={e => { e.stopPropagation(); if (!user) { alert('Please login.'); return; } toggleWatchlist(opp.itemId); if (!user.watchlist.includes(opp.itemId)) addNotification(opp.itemId, opp.itemName, `Added ${opp.itemName} to your watchlist.`, 'system'); }}
+                        className={`p-0.5 shrink-0 rounded transition-all ml-auto ${user?.watchlist.includes(opp.itemId) ? 'text-primary' : 'text-primary/20 hover:text-primary'}`}>
+                        <Star className={`w-3 h-3 ${user?.watchlist.includes(opp.itemId) ? 'fill-current' : ''}`} />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Route */}
-                  <div className="flex items-center px-6 border-r border-white/5 gap-4">
-                    <div className="text-center min-w-20">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider block mb-2">Buy</span>
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        <span className="text-xs font-bold text-foreground">{opp.buyCity}</span>
-                      </div>
-                      <span className="text-sm font-mono font-bold text-primary">{formatSilver(opp.buyPrice)}</span>
+                  {/* Buy (flex-2) */}
+                  <div className="flex-2 flex flex-col items-center justify-center border-r border-white/5 px-2">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                      <span className="text-xs font-bold text-foreground">{opp.buyCity}</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-primary/30 shrink-0 mt-4" />
-                    <div className="text-center min-w-20">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider block mb-2">Sell</span>
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <span className="text-xs font-bold text-foreground">{opp.sellCity}</span>
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      </div>
-                      <span className="text-sm font-mono font-bold text-primary">{formatSilver(opp.sellPrice)}</span>
+                    <span className="text-sm font-mono font-bold text-primary tabular-nums">{formatSilver(opp.buyPrice)}</span>
+                    <span className="text-label text-primary/35 font-mono mt-0.5">{formatTimeAgo(opp.buyDate)}</span>
+                  </div>
+
+                  {/* Arrow (w-7) */}
+                  <div className="w-7 shrink-0 flex items-center justify-center">
+                    <ArrowRight className="w-3.5 h-3.5 text-primary/30" />
+                  </div>
+
+                  {/* Sell (flex-2) */}
+                  <div className="flex-2 flex flex-col items-center justify-center border-r border-white/5 px-2">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-xs font-bold text-foreground">{opp.sellCity}</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    </div>
+                    <span className="text-sm font-mono font-bold text-primary tabular-nums">{formatSilver(opp.sellPrice)}</span>
+                    <span className="text-label text-primary/35 font-mono mt-0.5">{formatTimeAgo(opp.sellDate)}</span>
+                  </div>
+
+                  {/* Volume (flex-1) */}
+                  <div className="flex-1 flex flex-col items-center justify-center border-r border-white/5 gap-0.5 py-1.5">
+                    <div className="flex items-center gap-1">
+                      {opp.demandLevel === 'hot' ? (
+                        <span className="text-label font-black text-red-400 bg-red-500/10 border border-red-500/30 px-1 py-0.5 rounded uppercase tracking-wider">Hot</span>
+                      ) : opp.demandLevel === 'warm' ? (
+                        <span className="text-label font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-1 py-0.5 rounded uppercase tracking-wider">Warm</span>
+                      ) : (
+                        <span className="text-label font-black text-primary/30 bg-muted/30 border border-white/10 px-1 py-0.5 rounded uppercase tracking-wider">Cold</span>
+                      )}
+                    </div>
+                    <span className="text-label font-mono font-bold text-primary/60 tabular-nums">{opp.historicalCount ? opp.historicalCount.toLocaleString() : '-'}<span className="text-primary/30"> /24h</span></span>
+                  </div>
+
+                  {/* ROI (flex-1) */}
+                  <div className="flex-1 flex items-center justify-center border-r border-white/5">
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isSuspicious ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                      <Zap className="w-3.5 h-3.5 fill-current opacity-70 shrink-0" />
+                      <span className="text-xs font-bold tabular-nums">{opp.profitPercent.toFixed(1)}%</span>
                     </div>
                   </div>
 
-                  {/* Metrics */}
-                  <div className="flex items-stretch flex-1 gap-0">
-                    <div className="flex-1 flex flex-col items-center justify-center px-3 border-r border-white/5">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider mb-2">Volume</span>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-xs font-bold text-foreground">{opp.historicalCount ? opp.historicalCount.toLocaleString() : '—'}</span>
-                      </div>
+                  {/* Age (flex-1) */}
+                  <div className="flex-1 flex items-center justify-center border-r border-white/5">
+                    <div className={`flex items-center gap-1 ${freshnessUI.color}`}>
+                      <freshnessUI.icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-sm font-bold uppercase">{freshnessUI.label}</span>
                     </div>
-                    <div className="flex-1 flex flex-col items-center justify-center px-3 border-r border-white/5">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider mb-2">ROI</span>
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isSuspicious ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                        <Zap className="w-3.5 h-3.5 fill-current opacity-70" />
-                        <span className="text-xs font-bold">{opp.profitPercent.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center justify-center px-3 border-r border-white/5">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider mb-2">Age</span>
-                      <div className={`flex items-center gap-1 ${freshnessUI.color}`}>
-                        <freshnessUI.icon className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold uppercase">{freshnessUI.label}</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center justify-center px-3">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider mb-2">Profit</span>
-                      <span className="text-lg font-mono font-black text-green-400">{formatSilver(opp.finalProfit)}</span>
-                    </div>
+                  </div>
+
+                  {/* Profit (flex-[1.5]) */}
+                  <div className="flex-[1.5] flex items-center justify-center pr-3">
+                    <span className="text-base font-mono font-black text-green-400 tabular-nums">{formatSilver(opp.finalProfit)}</span>
                   </div>
                 </div>
 
@@ -504,7 +728,7 @@ export default function TopFlipping({
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-foreground font-bold truncate group-hover:text-primary transition-colors">{opp.itemName}</h4>
+                        <h4 title={opp.itemName} className="text-foreground font-bold truncate group-hover:text-primary transition-colors">{opp.itemName}</h4>
                         <button onClick={e => { e.stopPropagation(); if (!user) { alert("Please login to watchlist items."); return; } toggleWatchlist(opp.itemId); }}
                           className={`p-1 rounded transition-all shrink-0 ${user?.watchlist.includes(opp.itemId) ? "text-primary" : "text-primary/20 hover:text-primary"}`}>
                           <Star className={`w-3 h-3 ${user?.watchlist.includes(opp.itemId) ? "fill-current" : ""}`} />
@@ -512,7 +736,7 @@ export default function TopFlipping({
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-primary/60 font-medium">{getQualityName(opp.quality)}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isSuspicious ? 'bg-red-500/10 text-red-400' : isVerified ? 'bg-green-500/10 text-green-400' : 'bg-muted/30 text-muted-foreground'}`}>
+                        <span className={`text-label font-bold px-1.5 py-0.5 rounded-full ${isSuspicious ? 'bg-red-500/10 text-red-400' : isVerified ? 'bg-green-500/10 text-green-400' : 'bg-muted/30 text-muted-foreground'}`}>
                           {opp.verificationStatus || 'unknown'}
                         </span>
                       </div>
@@ -532,35 +756,46 @@ export default function TopFlipping({
                         <span className="text-xs text-foreground/70">{opp.buyCity}</span>
                       </div>
                       <span className="text-sm font-mono font-bold text-primary">{formatSilver(opp.buyPrice).replace(' Silver', '')}</span>
+                      <span className="text-label text-primary/35 font-mono block mt-0.5">{formatTimeAgo(opp.buyDate)}</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-primary/40" />
+                    <ArrowRight className="w-4 h-4 text-primary/70" />
                     <div className="flex-1 text-right">
                       <div className="flex items-center justify-end gap-1.5 mb-1">
                         <span className="text-xs text-foreground/70">{opp.sellCity}</span>
                         <div className="w-2 h-2 rounded-full bg-primary" />
                       </div>
                       <span className="text-sm font-mono font-bold text-primary">{formatSilver(opp.sellPrice).replace(' Silver', '')}</span>
+                      <span className="text-label text-primary/35 font-mono block mt-0.5">{formatTimeAgo(opp.sellDate)}</span>
                     </div>
                   </div>
 
                   {/* Row 3: Metrics */}
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     <div className="flex flex-col items-center p-2 bg-muted/30 rounded-xl">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider">ROI</span>
+                      <span className="text-label text-primary/75 font-semibold uppercase tracking-wider">ROI</span>
                       <div className={`flex items-center gap-1 mt-1 ${isSuspicious ? 'text-red-400' : 'text-blue-400'}`}>
                         <Zap className="w-3 h-3 fill-current opacity-70" />
                         <span className="text-xs font-bold">{opp.profitPercent.toFixed(1)}%</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-center p-2 bg-muted/30 rounded-xl">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider">Volume</span>
-                      <span className="text-xs font-bold text-foreground mt-1">{opp.historicalCount ? opp.historicalCount.toLocaleString() : '—'}</span>
+                      <span className="text-label text-primary/75 font-semibold uppercase tracking-wider">Demand</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        {opp.demandLevel === 'hot' ? (
+                          <span className="text-label font-black text-red-400">Hot</span>
+                        ) : opp.demandLevel === 'warm' ? (
+                          <span className="text-label font-black text-orange-400">Warm</span>
+                        ) : (
+                          <span className="text-label font-black text-primary/30">Cold</span>
+                        )}
+                      </div>
+                      <span className="text-label font-mono text-primary/60 mt-0.5">{opp.historicalCount ? opp.historicalCount.toLocaleString() : '-'}/24h</span>
                     </div>
                     <div className="flex flex-col items-center p-2 bg-muted/30 rounded-xl">
-                      <span className="text-[10px] text-primary/50 font-semibold uppercase tracking-wider">Age</span>
+                      <span className="text-label text-primary/75 font-semibold uppercase tracking-wider">Age</span>
                       <div className={`flex items-center gap-1 mt-1 ${freshnessUI.color}`}>
                         <freshnessUI.icon className="w-3 h-3" />
-                        <span className="text-[10px] font-bold uppercase">{freshnessUI.label}</span>
+                        <span className="text-label font-bold uppercase">{freshnessUI.label}</span>
                       </div>
                     </div>
                   </div>
@@ -572,7 +807,7 @@ export default function TopFlipping({
       )}
 
       {/* Load More */}
-      {!loading && !error && displayLimit > 0 && opportunities.length > displayLimit && (
+      {!loading && !error && displayLimit > 0 && filteredOpportunities.length > displayLimit && (
         <div className="flex justify-center mt-6">
           <button onClick={() => setDisplayLimit(d => d + 20)}
             className="glass-panel px-6 py-3 rounded-xl border border-primary/20 hover:border-primary/50 text-foreground font-bold tracking-widest uppercase text-xs transition-all hover:bg-primary/10 flex items-center gap-2 group">
@@ -583,3 +818,11 @@ export default function TopFlipping({
     </div>
   );
 }
+
+
+
+
+
+
+
+

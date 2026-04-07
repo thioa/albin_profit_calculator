@@ -41,13 +41,12 @@ export const fetchHistory = async (
   itemId: string,
   locations: string[] = [],
   qualities: number[] = [1],
-  server: string = "West",
+  _server: string = "West", // kept for signature compat; not sent to AODP
   date?: string
 ): Promise<AlbionHistory[]> => {
   const params = new URLSearchParams();
   if (locations.length > 0) params.append("locations", locations.join(","));
   if (qualities.length > 0) params.append("qualities", qualities.join(","));
-  params.append("server", server);
   params.append("time-scale", "1");
   if (date) params.append("date", date);
 

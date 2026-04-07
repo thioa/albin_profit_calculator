@@ -47,22 +47,104 @@
   html {
     @apply font-sans;
   }
+  /* Select option styling */
+  option {
+    background-color: rgb(21, 26, 33);
+    color: inherit;
+  }
 }
 
 @layer components {
+  /* Custom text size utilities - WCAG compliant */
+  .text-micro {
+    @apply text-[11px] leading-relaxed;
+  }
+  .text-tiny {
+    @apply text-[12px] leading-relaxed;
+  }
+  .text-label {
+    @apply text-[12px] leading-relaxed font-semibold;
+  }
+  
+  /* Custom scrollbar styling */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 175, 55, 0.2) transparent;
+  }
+  
+  /* Glass panel component */
   .glass-panel {
     background: rgba(32, 38, 47, 0.6);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(245, 158, 11, 0.15);
   }
+  
+  /* Standardized glow shadow utilities */
+  .shadow-glow-primary {
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  }
+  
+  .shadow-glow-primary-bright {
+    box-shadow: 0 0 6px rgba(212, 175, 55, 0.8);
+  }
+  
+  .shadow-glow-green {
+    box-shadow: 0 0 10px rgba(22, 163, 74, 0.3);
+  }
+  
+  .shadow-glow-blue {
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+  }
+  
+  .shadow-glow-yellow {
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+  }
+  
+  .shadow-glow-emerald {
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+  }
+  /* Enhanced dropdown styling with proper states and visual hierarchy */
+  [data-slot="dropdown-menu-content"] {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 55, 0.3);
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  [data-slot="dropdown-menu-item"] {
+    color: var(--sidebar-accent-foreground);
+    transition: background-color 100ms ease-out;
+  }
+  [data-slot="dropdown-menu-item"]:hover:not([data-disabled]) {
+    background-color: var(--sidebar-accent-hover);
+    color: oklch(0.15 0 0);
+  }
+  [data-slot="dropdown-menu-item"]:focus-visible {
+    background-color: var(--sidebar-accent-focus);
+    color: oklch(0.15 0 0);
+    outline: 2px solid var(--sidebar-primary);
+    outline-offset: -2px;
+  }
+  /* Select component enhancements */
+  [data-slot="select-content"] {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 55, 0.3);
+  }
+  [data-slot="select-item"] {
+    color: var(--sidebar-accent-foreground);
+  }
+  [data-slot="select-item"]:hover:not([data-disabled]) {
+    background-color: var(--sidebar-accent-hover);
+    color: oklch(0.15 0 0);
+  }
+  [data-slot="select-item"]:focus-visible {
+    background-color: var(--sidebar-accent-focus);
+    color: oklch(0.15 0 0);
+    outline: 2px solid var(--sidebar-primary);
+    outline-offset: -1px;
+  }
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-  .text-muted-accessible {
-    color: oklch(0.708 0 0);
-  }
-  .text-label-accessible {
-    color: oklch(0.65 0 0);
   }
 
   /* Consistent page container width across all pages */
@@ -147,12 +229,13 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.8 0.1 73.5);
+  --accent-foreground: oklch(0.15 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.75 0.15 85);
+  --brand: oklch(0.8 0.1 73.5);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -160,10 +243,12 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.85 0.15 85);
+  --sidebar-primary: oklch(0.8 0.1 73.5);
   --sidebar-primary-foreground: oklch(0.15 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.98 0.01 60);
+  --sidebar-accent-foreground: oklch(0.15 0 0);
+  --sidebar-accent-hover: oklch(0.93 0.08 73.5);
+  --sidebar-accent-focus: oklch(0.85 0.15 73.5);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.75 0.15 85);
+  --sidebar-ring: oklch(0.8 0.1 73.5);
 }

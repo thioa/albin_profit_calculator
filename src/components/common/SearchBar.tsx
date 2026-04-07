@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
 import Fuse from "fuse.js";
 import { Search, ChevronDown } from "lucide-react";
 import itemsDataRaw from "../../data/items-lite.json";
@@ -59,7 +59,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
     if (filterPredicate) {
       items = items.filter(filterPredicate);
     }
-    // Deduplicate by id — safety net
+    // Deduplicate by id â€” safety net
     const seen = new Map<string, AlbionItem>();
     for (const item of items) {
       if (!seen.has(item.id)) seen.set(item.id, item);
@@ -132,7 +132,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1 h-11" ref={containerRef}>
           <div className="relative h-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/75 w-4 h-4 pointer-events-none" />
             <input
               type="text"
               value={query}
@@ -177,7 +177,7 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
                   <div>
                     <div className="text-white font-medium group-hover/item:text-primary transition-colors">{item.name}</div>
                     <div className="text-xs text-primary/60 font-bold uppercase tracking-wider">
-                      Tier {item.tier} {item.enchantment > 0 ? `.${item.enchantment}` : ""} • {item.category}
+                      Tier {item.tier} {item.enchantment > 0 ? `.${item.enchantment}` : ""} â€¢ {item.category}
                     </div>
                   </div>
                 </button>
@@ -197,12 +197,12 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
               className="w-full h-11 appearance-none bg-black/40 border border-primary/20 rounded-xl pl-4 pr-10 text-primary text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
               aria-label="Filter by category"
             >
-              <option value="" className="text-primary/50">All Categories</option>
+              <option value="" className="text-primary/75">All Categories</option>
               {categories.map(cat => (
                 <option key={cat} value={cat} className="text-white bg-[#0a0e14]">{cat}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/75 w-4 h-4 pointer-events-none" />
           </div>
 
           <div className="relative min-w-40">
@@ -213,15 +213,23 @@ export default function SearchBar({ onSelect, craftableOnly = false, filterPredi
               className="w-full h-11 appearance-none bg-black/40 border border-primary/20 rounded-xl pl-4 pr-10 text-primary text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               aria-label="Filter by sub-category"
             >
-              <option value="" className="text-primary/50">All Sub-Cats</option>
+              <option value="" className="text-primary/75">All Sub-Cats</option>
               {subCategories.map(sub => (
                 <option key={sub} value={sub} className="text-white bg-[#0a0e14]">{sub}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/75 w-4 h-4 pointer-events-none" />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+

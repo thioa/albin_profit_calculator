@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, UserPlus, AlertCircle, CheckCircle2, Eye, EyeOff, Mail, User, Lock, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -52,7 +52,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
@@ -62,7 +62,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </DialogTitle>
           </div>
-          <DialogDescription className="text-primary/50 text-xs">
+          <DialogDescription className="text-primary/75 text-xs">
             {mode === 'login' ? 'Access your crafting plans and profile' : 'Join the Albion Navigator community'}
           </DialogDescription>
         </DialogHeader>
@@ -70,9 +70,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           {/* Email */}
           <div className="grid gap-1.5">
-            <Label htmlFor="auth-email" className="text-xs font-bold uppercase tracking-widest text-primary/50">Email</Label>
+            <Label htmlFor="auth-email" className="text-xs font-bold uppercase tracking-widest text-primary/75">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/75 pointer-events-none" />
               <Input
                 id="auth-email"
                 type="email"
@@ -95,9 +95,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 exit={{ opacity: 0, height: 0 }}
                 className="grid gap-1.5"
               >
-                <Label htmlFor="auth-username" className="text-xs font-bold uppercase tracking-widest text-primary/50">Display Name</Label>
+                <Label htmlFor="auth-username" className="text-xs font-bold uppercase tracking-widest text-primary/75">Display Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/75 pointer-events-none" />
                   <Input
                     id="auth-username"
                     type="text"
@@ -114,17 +114,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
           {/* Password */}
           <div className="grid gap-1.5">
-            <Label htmlFor="auth-password" className="text-xs font-bold uppercase tracking-widest text-primary/50">
+            <Label htmlFor="auth-password" className="text-xs font-bold uppercase tracking-widest text-primary/75">
               Password {mode === 'register' && <span className="text-primary/30 normal-case font-normal tracking-normal">(min. 6 chars)</span>}
             </Label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/75 pointer-events-none" />
               <Input
                 id="auth-password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 className="pl-10 pr-11 bg-black/40 border-primary/10 focus:border-primary/30"
               />
@@ -132,7 +132,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 type="button"
                 onClick={() => setShowPassword(v => !v)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors focus:outline-none"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-primary/75 hover:text-primary transition-colors focus:outline-none"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -174,11 +174,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           {/* Switch mode */}
           <div className="text-center">
             {mode === 'login' ? (
-              <button type="button" onClick={() => switchMode('register')} className="text-primary/40 hover:text-primary text-xs transition-colors">
+              <button type="button" onClick={() => switchMode('register')} className="text-primary/70 hover:text-primary text-xs transition-colors">
                 Don't have an account? <span className="text-primary/60 font-bold">Register here</span>
               </button>
             ) : (
-              <button type="button" onClick={() => switchMode('login')} className="text-primary/40 hover:text-primary text-xs transition-colors">
+              <button type="button" onClick={() => switchMode('login')} className="text-primary/70 hover:text-primary text-xs transition-colors">
                 Already have an account? <span className="text-primary/60 font-bold">Sign in</span>
               </button>
             )}
@@ -187,10 +187,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
         <DialogFooter className="pt-2">
           <p className="text-xs text-primary/20 uppercase tracking-widest text-center w-full">
-            Local-First • Password Secured • No Server Required
+            Local-First â€¢ Password Secured â€¢ No Server Required
           </p>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+
+
+
+
+
+

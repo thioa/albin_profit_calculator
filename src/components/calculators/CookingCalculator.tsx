@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ChefHat } from 'lucide-react';
 import BaseCalculator from './BaseCalculator';
 import { AlbionServer, AlbionItem } from '../../types/albion';
@@ -44,3 +44,11 @@ export default function CookingCalculator({ server, injectedItem, onItemInjected
     />
   );
 }
+
+
+
+
+
+
+
+

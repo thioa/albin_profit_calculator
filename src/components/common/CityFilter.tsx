@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { AlbionCity, ALBION_CITIES } from "../../types/albion";
 import { clsx, type ClassValue } from "clsx";
@@ -51,17 +51,17 @@ export default function CityFilter({ selectedCities, onChange }: CityFilterProps
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Filter by city"
         aria-expanded={isOpen}
-        className="flex items-center gap-3 glass-panel p-2.5 px-4 rounded-xl border border-primary/10 text-white hover:border-primary/30 transition-all min-w-52 justify-between focus:outline-none focus:ring-2 focus:ring-primary/50"
+        className="flex items-center gap-3 glass-panel p-2.5 px-4 rounded-xl border border-primary/20 text-foreground/80 hover:text-foreground hover:border-primary/40 transition-all min-w-52 justify-between focus:outline-none focus:ring-2 focus:ring-primary/50"
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-primary/50 font-medium text-sm whitespace-nowrap">Cities:</span>
+          <span className="text-primary/75 font-medium text-sm whitespace-nowrap">Cities:</span>
           <span className="text-sm font-bold truncate">
             {selectedCities.length === ALBION_CITIES.length
               ? "All Cities"
               : `${selectedCities.length} Selected`}
           </span>
         </div>
-        <ChevronDown className={cn("w-5 h-5 text-primary/50 transition-transform", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-5 h-5 text-primary/75 transition-transform", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (
@@ -92,7 +92,7 @@ export default function CityFilter({ selectedCities, onChange }: CityFilterProps
                 )}>
                   {selectedCities.includes(city) && <Check className="w-3.5 h-3.5 text-black" />}
                 </div>
-                <span className="text-sm text-on-surface">{city}</span>
+                <span className="text-sm text-foreground">{city}</span>
               </button>
             ))}
           </div>
@@ -101,3 +101,11 @@ export default function CityFilter({ selectedCities, onChange }: CityFilterProps
     </div>
   );
 }
+
+
+
+
+
+
+
+

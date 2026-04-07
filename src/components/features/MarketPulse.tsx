@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AlbionItem, AlbionServer, ALBION_CITIES } from "../../types/albion";
 import { fetchHistory } from "../../lib/albion-api";
 import { formatSilver } from "../../lib/economy-utils";
@@ -21,7 +21,7 @@ const itemsData = processItems(itemsDataRaw as AlbionItem[]);
 const CATEGORIES = ["All", "Weapons", "Armor", "Off-Hand", "Accessories", "Mounts", "Bags", "Capes", "Resources", "Food", "Potions"];
 const TIERS = ["All", "T4", "T5", "T6", "T7", "T8"];
 
-// City config — active state (has value)
+// City config â€” active state (has value)
 const CITY_ACTIVE: Record<string, { label: string; className: string }> = {
   'Lymhurst':      { label: "LYM", className: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" },
   'Fort Sterling': { label: "FST", className: "bg-zinc-500/20 border-zinc-500/40 text-zinc-400" },
@@ -32,7 +32,7 @@ const CITY_ACTIVE: Record<string, { label: string; className: string }> = {
   'Brecilien':     { label: "BRC", className: "bg-pink-500/20 border-pink-500/40 text-pink-400" },
 };
 
-// City config — inactive state (no data)
+// City config â€” inactive state (no data)
 const CITY_INACTIVE: Record<string, { label: string; className: string }> = {
   'Lymhurst':      { label: "LYM", className: "bg-white/5 border-white/10 text-white/30" },
   'Fort Sterling': { label: "FST", className: "bg-white/5 border-white/10 text-white/30" },
@@ -242,7 +242,7 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
           Discover which items are trending by analyzing real transaction history across all cities.
         </p>
         {lastUpdated && (
-          <p className="text-primary/40 text-xs flex items-center gap-1.5 mt-1">
+          <p className="text-primary/70 text-xs flex items-center gap-1.5 mt-1">
             <Clock className="w-3.5 h-3.5" />
             Cache updated {Math.round((Date.now() - lastUpdated.getTime()) / 60000)} min ago
           </p>
@@ -262,12 +262,12 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
 
         <select value={category} onChange={e => setCategory(e.target.value)}
           className="h-10 sm:h-12 bg-black/20 border border-primary/20 rounded-lg sm:rounded-xl px-2 sm:px-4 text-white text-xs sm:text-sm font-bold focus:outline-none cursor-pointer appearance-none min-w-20 sm:min-w-25">
-          {CATEGORIES.map(c => <option key={c} value={c} style={{background: '#151a21'}}>{c}</option>)}
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
         <select value={tier} onChange={e => setTier(e.target.value)}
           className="h-10 sm:h-12 bg-black/20 border border-primary/20 rounded-lg sm:rounded-xl px-2 sm:px-4 text-white text-xs sm:text-sm font-bold focus:outline-none cursor-pointer appearance-none min-w-15 sm:min-w-20">
-          {TIERS.map(t => <option key={t} value={t} style={{background: '#151a21'}}>{t}</option>)}
+          {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
 
         <div className="flex glass-panel p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-primary/10 gap-1 h-10 sm:h-12">
@@ -275,7 +275,7 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
             <button key={r} onClick={() => setTimeRange(r)}
               className={cn(
                 "px-2 sm:px-4 rounded-md sm:rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all",
-                timeRange === r ? "bg-primary text-black" : "text-primary/50 hover:text-primary"
+                timeRange === r ? "bg-primary text-black" : "text-primary/75 hover:text-primary"
               )}>
               {r}H
             </button>
@@ -283,27 +283,27 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
         </div>
 
         <div className="flex items-center gap-2 glass-panel px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-primary/10 h-10 sm:h-12">
-          <svg className="w-4 h-4 text-primary/40 hidden sm:block shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-4 h-4 text-primary/70 hidden sm:block shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
           </svg>
           <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
             className="bg-transparent text-primary text-xs sm:text-sm font-bold focus:outline-none cursor-pointer appearance-none uppercase tracking-wider">
-            <option value="demand" style={{background: '#151a21'}}>Demand</option>
-            <option value="volume" style={{background: '#151a21'}}>Volume</option>
-            <option value="trend" style={{background: '#151a21'}}>Trend</option>
-            <option value="price" style={{background: '#151a21'}}>Price</option>
+            <option value="demand">Demand</option>
+            <option value="volume">Volume</option>
+            <option value="trend">Trend</option>
+            <option value="price">Price</option>
           </select>
         </div>
 
         <div className="hidden sm:flex items-center gap-3 glass-panel px-4 rounded-xl border border-primary/10 h-12">
-          <span className="text-primary/50 text-sm font-bold uppercase tracking-wider">Showing</span>
+          <span className="text-primary/75 text-sm font-bold uppercase tracking-wider">Showing</span>
           <span className="text-white font-bold text-base">{sorted.length}</span>
-          <span className="text-primary/40 text-sm">of</span>
+          <span className="text-primary/70 text-sm">of</span>
           <span className="text-primary font-bold text-base">{entries.length}</span>
         </div>
 
         <div className="sm:hidden flex items-center gap-1 glass-panel px-2 py-1 rounded-lg border border-primary/10">
-          <span className="text-primary/50 text-xs font-bold">{sorted.length}</span>
+          <span className="text-primary/75 text-xs font-bold">{sorted.length}</span>
           <span className="text-primary/30 text-xs">/</span>
           <span className="text-primary font-bold text-xs">{entries.length}</span>
         </div>
@@ -337,8 +337,8 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
               transition={{ duration: 0.4 }}
             />
           </div>
-          <p className="text-xs text-primary/40 uppercase tracking-wider">
-            Background scan — showing cached results while loading...
+          <p className="text-xs text-primary/70 uppercase tracking-wider">
+            Background scan â€” showing cached results while loading...
           </p>
         </div>
       )}
@@ -352,7 +352,7 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
             className="w-32 h-32 opacity-60"
           />
           <p className="text-white font-bold">No data yet</p>
-          <p className="text-primary/40 text-sm">Select a category and the scan will begin automatically.</p>
+          <p className="text-primary/70 text-sm">Select a category and the scan will begin automatically.</p>
         </div>
       )}
 
@@ -376,7 +376,7 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                   transition={{ delay: idx * 0.03 }}
                   className="group relative glass-panel border border-white/10 rounded-xl overflow-hidden transition-all duration-300 hover:border-primary/30"
                 >
-                  {/* ── DESKTOP ROW ── */}
+                  {/* â”€â”€ DESKTOP ROW â”€â”€ */}
                   <div className="hidden lg:flex items-stretch min-w-0">
 
                     {/* Trend strip */}
@@ -389,7 +389,7 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                       </div>
                     </div>
 
-                    {/* Item name + tier + trend — single line */}
+                    {/* Item name + tier + trend â€” single line */}
                     <div className="flex items-center gap-2 px-3 border-r border-white/5 shrink-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -399,44 +399,44 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                           {item.name}
                         </TooltipContent>
                       </Tooltip>
-                      <span className="text-xs font-bold text-primary/40 shrink-0">T{item.tier}</span>
+                      <span className="text-xs font-bold text-primary/70 shrink-0">T{item.tier}</span>
                       <span className={cn(
-                        "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0",
+                        "inline-flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded-full border shrink-0",
                         trendCfg.bg, trendCfg.color, trendCfg.borderColor
                       )}>
                         <trendCfg.icon className="w-2.5 h-2.5" />
                         {trendCfg.label}
-                        <span className="text-[10px] opacity-70">{entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}%</span>
+                        <span className="text-label opacity-70">{entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}%</span>
                       </span>
                     </div>
 
-                    {/* Metrics: Demand | Volume | Avg — inline, no wrapping */}
+                    {/* Metrics: Demand | Volume | Avg â€” inline, no wrapping */}
                     <div className="flex items-center gap-0 border-r border-white/5 shrink-0">
                       {/* Demand */}
                       <div className="flex items-center gap-1.5 px-3 py-2">
-                        <Zap className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                        <Zap className="w-3.5 h-3.5 text-primary/75 shrink-0" />
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-primary/30 uppercase tracking-widest leading-none">Demand</span>
+                          <span className="text-label font-bold text-primary/30 uppercase tracking-widest leading-none">Demand</span>
                           <span className="text-sm font-black text-primary tabular-nums leading-none">{demandScore >= 1000 ? `${(demandScore/1000).toFixed(1)}K` : demandScore.toLocaleString()}</span>
                         </div>
                       </div>
                       {/* Volume */}
                       <div className="flex items-center gap-1.5 px-3 py-2 border-l border-white/5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest leading-none">Volume</span>
+                          <span className="text-label font-bold text-white/20 uppercase tracking-widest leading-none">Volume</span>
                           <span className="text-sm font-bold text-white/50 tabular-nums leading-none">{entry.totalVolume >= 1000 ? `${(entry.totalVolume/1000).toFixed(1)}K` : entry.totalVolume.toLocaleString()}</span>
                         </div>
                       </div>
                       {/* Avg */}
                       <div className="flex items-center gap-1.5 px-3 py-2 border-l border-white/5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest leading-none">Avg</span>
+                          <span className="text-label font-bold text-white/20 uppercase tracking-widest leading-none">Avg</span>
                           <span className="text-sm font-mono font-bold text-primary/60 tabular-nums leading-none">{formatSilver(entry.avgPrice).replace(' Silver', '')}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* City prices — compact single row */}
+                    {/* City prices â€” compact single row */}
                     <div className="flex items-center gap-1 px-3 overflow-x-auto scrollbar-hide shrink-0">
                       {ALBION_CITIES.map(city => {
                         const cityData = entry.perCity.find(c => c.city === city);
@@ -451,9 +451,9 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                               !hasValue && "opacity-40"
                             )}
                           >
-                            <span className="text-[10px] font-bold uppercase tracking-wider leading-none">{cfg.label}</span>
-                            <span className="text-[11px] font-mono font-bold leading-none tabular-nums">
-                              {hasValue ? formatSilver(cityData.avgPrice).replace(' Silver', '') : '—'}
+                            <span className="text-label font-bold uppercase tracking-wider leading-none">{cfg.label}</span>
+                            <span className="text-sm font-mono font-bold leading-none tabular-nums">
+                              {hasValue ? formatSilver(cityData.avgPrice).replace(' Silver', '') : 'â€”'}
                             </span>
                           </div>
                         );
@@ -473,9 +473,9 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                     )}
                   </div>
 
-                  {/* ── MOBILE / TABLET STACKED ── */}
+                  {/* â”€â”€ MOBILE / TABLET STACKED â”€â”€ */}
                   <div className="lg:hidden p-4 flex flex-col gap-3">
-                    {/* Row 1: Item + trade — single line */}
+                    {/* Row 1: Item + trade â€” single line */}
                     <div className="flex items-center gap-2">
                       <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 shrink-0 overflow-hidden">
                         <img src={item.icon} alt={item.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
@@ -488,13 +488,13 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                           {item.name}
                         </TooltipContent>
                       </Tooltip>
-                      <span className="text-xs font-bold text-primary/40 shrink-0">T{item.tier}</span>
+                      <span className="text-xs font-bold text-primary/70 shrink-0">T{item.tier}</span>
                       <span className={cn(
-                        "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0",
+                        "inline-flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded-full border shrink-0",
                         trendCfg.bg, trendCfg.color, trendCfg.borderColor
                       )}>
                         <trendCfg.icon className="w-2.5 h-2.5" />
-                        {trendCfg.label} <span className="text-[10px] opacity-70">{entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}%</span>
+                        {trendCfg.label} <span className="text-label opacity-70">{entry.trendPercent > 0 ? '+' : ''}{entry.trendPercent}%</span>
                       </span>
                       {onTradeItem && (
                         <button
@@ -506,24 +506,24 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                       )}
                     </div>
 
-                    {/* Row 2: Metrics — compact inline */}
+                    {/* Row 2: Metrics â€” compact inline */}
                     <div className="flex items-center gap-0">
                       <div className="flex items-center gap-1.5 px-3 py-1.5">
-                        <Zap className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                        <Zap className="w-3.5 h-3.5 text-primary/75 shrink-0" />
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-primary/30 uppercase tracking-widest leading-none">Demand</span>
+                          <span className="text-label font-bold text-primary/30 uppercase tracking-widest leading-none">Demand</span>
                           <span className="text-sm font-black text-primary tabular-nums leading-none">{demandScore >= 1000 ? `${(demandScore/1000).toFixed(1)}K` : demandScore.toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 px-3 py-1.5 border-l border-white/5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest leading-none">Volume</span>
+                          <span className="text-label font-bold text-white/20 uppercase tracking-widest leading-none">Volume</span>
                           <span className="text-sm font-bold text-white/50 tabular-nums leading-none">{entry.totalVolume >= 1000 ? `${(entry.totalVolume/1000).toFixed(1)}K` : entry.totalVolume.toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 px-3 py-1.5 border-l border-white/5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest leading-none">Avg</span>
+                          <span className="text-label font-bold text-white/20 uppercase tracking-widest leading-none">Avg</span>
                           <span className="text-sm font-mono font-bold text-primary/60 tabular-nums leading-none">{formatSilver(entry.avgPrice).replace(' Silver', '')}</span>
                         </div>
                       </div>
@@ -544,9 +544,9 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
                               !hasValue && "opacity-40"
                             )}
                           >
-                            <span className="text-[10px] font-bold uppercase tracking-wider leading-none">{cfg.label}</span>
-                            <span className="text-[11px] font-mono font-bold leading-none tabular-nums">
-                              {hasValue ? formatSilver(cityData.avgPrice).replace(' Silver', '') : '—'}
+                            <span className="text-label font-bold uppercase tracking-wider leading-none">{cfg.label}</span>
+                            <span className="text-sm font-mono font-bold leading-none tabular-nums">
+                              {hasValue ? formatSilver(cityData.avgPrice).replace(' Silver', '') : 'â€”'}
                             </span>
                           </div>
                         );
@@ -562,3 +562,10 @@ export default function MarketPulse({ server, onTradeItem }: { server: AlbionSer
     </div>
   );
 }
+
+
+
+
+
+
+

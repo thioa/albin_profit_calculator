@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { AlbionItem, AlbionCity, AlbionServer } from "../../types/albion";
 import { fetchPrices } from "../../lib/albion-api";
 import {
@@ -165,7 +165,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [recentDropdownOpen]);
 
-  // ── Load plan/simulation from events ─────────────────────────────────────
+  // â”€â”€ Load plan/simulation from events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const handleLoadSim = (e: any) => {
       const sim = e.detail as SavedSimulation;
@@ -251,7 +251,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     }
   };
 
-  // ── Auto-Save (debounced 2s, only on user interaction) ─────────────────────
+  // â”€â”€ Auto-Save (debounced 2s, only on user interaction) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const getCurrentPlanState = () => ({
     craftList, haveList, manualPrices, sellPrices,
     sourceCities: sourceCities as Record<string, string>,
@@ -291,10 +291,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [craftList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig, haveList, noRrrItems, user, hasUserInteracted]);
 
-  // ── Finalize Plan (give it a proper name) ─────────────────────────────────
+  // â”€â”€ Finalize Plan (give it a proper name) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleFinalize = () => {
     if (!user) { alert('Please login to save crafting plans.'); return; }
-    setFinalizeName(`My ${title} — ${new Date().toLocaleDateString()}`);
+    setFinalizeName(`My ${title} â€” ${new Date().toLocaleDateString()}`);
     setFinalizeNote('');
     setShowFinalizeModal(true);
   };
@@ -324,7 +324,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     if (name) saveSimulation({ name, type: storageKey as 'crafting' | 'refining' | 'cooking', data: { craftList, haveList, manualPrices, sellPrices, sourceCities, globalCity, rrrConfig } });
   };
 
-  // Shopping list — Bring / Returned / Net
+  // Shopping list â€” Bring / Returned / Net
   const shoppingList = useMemo<ShoppingItem[]>(() => {
     const map: Record<string, ShoppingItem> = {};
     craftList.forEach(item => {
@@ -515,7 +515,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
   const hasCityPrices = craftList.some(i => manualPrices[i.id] && Object.keys(manualPrices[i.id]).length > 0);
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
 
       {/* Auto-save toast notification */}
       <AnimatePresence>
@@ -532,7 +532,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         )}
       </AnimatePresence>
 
-      {/* ─── Page Header ─── */}
+      {/* â”€â”€â”€ Page Header â”€â”€â”€ */}
       <div className="glass-panel p-5 rounded-3xl border border-primary/10">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-primary/10 rounded-lg">
@@ -547,7 +547,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         </p>
       </div>
 
-      {/* ─── Control Bar ─── */}
+      {/* â”€â”€â”€ Control Bar â”€â”€â”€ */}
       <div className="flex flex-col gap-4 glass-panel p-5 rounded-3xl border border-primary/10 relative z-30">
         {/* Row 1: Search + Recent */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -567,7 +567,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
             >
               <History className="w-4 h-4 text-primary" />
               Recent
-              <ChevronDown className={`w-3.5 h-3.5 text-primary/40 transition-transform ${recentDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-primary/70 transition-transform ${recentDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {recentDropdownOpen && (
@@ -581,7 +581,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                   className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-xl shadow-2xl z-50 p-2"
                 >
                   {recentItems.length === 0 ? (
-                    <div className="p-3 text-sm text-primary/40 italic text-center">No recent items yet</div>
+                    <div className="p-3 text-sm text-primary/70 italic text-center">No recent items yet</div>
                   ) : recentItems.map(({ item, prices: snap, sellPrices: snapSell }, idx) => (
                     <button key={item.id}
                       id={`recent-item-${idx}`}
@@ -607,7 +607,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                       <div className="min-w-0">
                         <div className="text-sm text-white truncate font-medium">{item.name}</div>
                         {snapSell[item.id] > 0 && (
-                          <div className="text-xs text-primary/40">Last sell: {snapSell[item.id].toLocaleString()}</div>
+                          <div className="text-xs text-primary/70">Last sell: {snapSell[item.id].toLocaleString()}</div>
                         )}
                       </div>
                     </button>
@@ -622,20 +622,20 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         <div className="flex flex-wrap items-end gap-3">
           {/* Default City */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Default City</label>
+            <label className="text-label font-black text-primary/70 uppercase tracking-widest">Default City</label>
             <div className="relative">
               <select value={globalCity}
                 onChange={e => { setGlobalCity(e.target.value as AlbionCity); setCityManuallySet(true); }}
                 className="h-11 bg-black/40 border border-primary/20 rounded-xl px-4 pr-8 text-primary text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background appearance-none cursor-pointer min-w-36">
                 {CITIES.map(c => <option key={c} value={c} className="bg-[#0a0e14] text-white">{c}</option>)}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/75 w-4 h-4 pointer-events-none" />
             </div>
           </div>
 
           {/* Station Bonus */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Station Bonus</label>
+            <label className="text-label font-black text-primary/70 uppercase tracking-widest">Station Bonus</label>
             <div className="relative">
               <select value={rrrConfig.stationBonus}
                 onChange={e => setRrrConfig(p => ({ ...p, stationBonus: Number(e.target.value) as 10 | 20 }))}
@@ -643,13 +643,13 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 <option value={10} className="bg-[#0a0e14] text-white">Normal (10%)</option>
                 <option value={20} className="bg-[#0a0e14] text-white">Event / Premium (20%)</option>
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/50 w-4 h-4 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/75 w-4 h-4 pointer-events-none" />
             </div>
           </div>
 
           {/* City Bonus */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">City Bonus</label>
+            <label className="text-label font-black text-primary/70 uppercase tracking-widest">City Bonus</label>
             <button
               onClick={() => setRrrConfig(p => ({ ...p, cityBonus: !p.cityBonus }))}
               aria-pressed={rrrConfig.cityBonus}
@@ -657,7 +657,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
               className={`h-11 px-5 rounded-xl font-bold text-sm transition-all ${
                 rrrConfig.cityBonus
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                  : "bg-black/30 text-primary/50 border border-primary/15"
+                  : "bg-black/30 text-primary/75 border border-primary/15"
               }`}
             >
               {rrrConfig.cityBonus ? "On" : "Off"}
@@ -666,7 +666,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
           {/* Focus */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Focus</label>
+            <label className="text-label font-black text-primary/70 uppercase tracking-widest">Focus</label>
             <button
               onClick={() => setRrrConfig(p => ({ ...p, focus: !p.focus }))}
               aria-pressed={rrrConfig.focus}
@@ -674,7 +674,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
               className={`h-11 px-5 rounded-xl font-bold text-sm transition-all ${
                 rrrConfig.focus
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                  : "bg-black/30 text-primary/50 border border-primary/15"
+                  : "bg-black/30 text-primary/75 border border-primary/15"
               }`}
             >
               {rrrConfig.focus ? "On" : "Off"}
@@ -686,7 +686,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
           {/* RRR Badge */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">RRR</label>
+            <label className="text-label font-black text-primary/70 uppercase tracking-widest">RRR</label>
             <div className="flex items-center gap-2 h-11 bg-primary/10 border border-primary/30 rounded-xl px-4">
               <RotateCcw className="w-4 h-4 text-primary" />
               <span className="text-primary font-black text-base">{rrr.toFixed(1)}%</span>
@@ -695,7 +695,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
           {/* Pull Market */}
           <div className="flex flex-col gap-1.5 ml-auto">
-            <label className="text-[10px] font-black text-transparent select-none">Actions</label>
+            <label className="text-label font-black text-transparent select-none">Actions</label>
             <button onClick={pullPrices} disabled={loading}
               className="flex items-center gap-2 px-4 h-11 bg-primary/15 hover:bg-primary/25 border border-primary/40 rounded-xl text-primary font-bold uppercase tracking-wider transition-all disabled:opacity-40 shrink-0 text-xs">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -712,7 +712,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 autoSaveStatus === 'saved'  ? 'Saved' : 'Auto-save on'
               }>
                 <span className={cn(
-                  autoSaveStatus === 'saving' ? 'text-primary/50' :
+                  autoSaveStatus === 'saving' ? 'text-primary/75' :
                   autoSaveStatus === 'saved'  ? 'text-success' : 'text-primary/30'
                 )}>
                   {autoSaveStatus === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -722,7 +722,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
               </div>
               {/* Finalize Plan */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-transparent select-none">Finalize</label>
+                <label className="text-label font-black text-transparent select-none">Finalize</label>
                 <button onClick={handleFinalize}
                   className="flex items-center gap-2 px-4 h-11 bg-success/10 hover:bg-success/20 text-success border border-success/25 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shrink-0">
                   <Save className="w-4 h-4" /> Finalize Plan
@@ -731,7 +731,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black text-transparent select-none">Finalize</label>
+              <label className="text-label font-black text-transparent select-none">Finalize</label>
               <button onClick={handleFinalize} disabled={craftList.length === 0}
                 className="flex items-center gap-2 px-4 h-11 bg-success/10 hover:bg-success/20 text-success border border-success/25 rounded-xl font-bold uppercase tracking-wider text-xs transition-all disabled:opacity-30 shrink-0">
                 <Save className="w-4 h-4" /> Finalize Plan
@@ -745,14 +745,14 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-400">{error}</div>
       )}
 
-      {/* ─── Items to Craft ─── Horizontal Table Layout ─── */}
+      {/* â”€â”€â”€ Items to Craft â”€â”€â”€ Horizontal Table Layout â”€â”€â”€ */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 px-1">
           {icon}
           <h2 className="text-lg font-black text-white uppercase tracking-wider italic">{title}</h2>
         </div>
         <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-          <table className="w-full text-left border-collapse min-w-[600px]">
+          <table className="w-full text-left border-collapse" style={{ minWidth: '600px' }}>
             <thead>
               <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-4 w-10" scope="col" />
@@ -762,7 +762,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center w-20" scope="col">Qty</th>
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center w-36" scope="col">
                   Fee / craft
-                  <div className="text-xs text-primary/40 font-normal normal-case tracking-normal">(silver, editable)</div>
+                  <div className="text-xs text-primary/70 font-normal normal-case tracking-normal">(silver, editable)</div>
                 </th>
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center w-32" scope="col">Sell Price</th>
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-right w-32" scope="col">Profit</th>
@@ -782,10 +782,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                       <td className="p-3">
                         {confirmDeleteItem === item.id ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => removeCraftItem(item.id)} className="px-2 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all" aria-label="Confirm delete">
+                            <button onClick={() => removeCraftItem(item.id)} className="px-2 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-tiny font-black uppercase tracking-widest transition-all" aria-label="Confirm delete">
                               Confirm
                             </button>
-                            <button onClick={() => setConfirmDeleteItem(null)} className="px-2 py-1 bg-white/5 text-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all" aria-label="Cancel delete">
+                            <button onClick={() => setConfirmDeleteItem(null)} className="px-2 py-1 bg-white/5 text-primary/30 rounded-lg text-tiny font-black uppercase tracking-widest transition-all" aria-label="Cancel delete">
                               Cancel
                             </button>
                           </div>
@@ -800,22 +800,22 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                           <img src={item.icon} alt={`${item.name} crafting item`} className="w-11 h-11 object-contain shrink-0" referrerPolicy="no-referrer" loading="lazy" />
                           <div className="min-w-0">
                             <div className="text-sm font-bold text-white truncate">{item.name}</div>
-                            <div className="text-xs text-primary/40 font-mono tracking-tight truncate">{item.id}</div>
+                            <div className="text-xs text-primary/70 font-mono tracking-tight truncate">{item.id}</div>
                           </div>
                         </div>
                       </td>
                       <td className="p-3 hidden sm:table-cell">
                         {calc.bestCity ? (
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-on-surface border-primary/20"}`}>
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-foreground border-primary/20"}`}>
                             <MapPin className="w-3 h-3" />{calc.bestCity}
-                            <span className="text-[9px] opacity-70">+15%</span>
+                            <span className="text-tiny opacity-70">+15%</span>
                           </div>
-                        ) : <span className="text-xs text-primary/40 italic">Any City</span>}
+                        ) : <span className="text-xs text-primary/70 italic">Any City</span>}
                       </td>
                       <td className="p-3 hidden md:table-cell">
                         <div className="flex flex-wrap gap-2">
                           {(!recipe || recipe.length === 0)
-                            ? <span className="text-xs text-primary/40 italic">No recipe</span>
+                            ? <span className="text-xs text-primary/70 italic">No recipe</span>
                             : recipe.map(req => {
                               const ri = itemsData.find(it => it.id === req.id);
                               return (
@@ -843,7 +843,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                             onChange={e => updateCraftItem(item.id, { stationFeeSilver: Math.max(0, Number(e.target.value)) })}
                             className="w-28 bg-black/40 border border-primary/20 rounded-xl py-2 px-3 text-center text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background" />
                           {item.count > 1 && item.stationFeeSilver > 0 && (
-                            <span className="text-xs text-primary/40">
+                            <span className="text-xs text-primary/70">
                               Total: {formatSilver(item.stationFeeSilver * item.count)}
                             </span>
                           )}
@@ -867,7 +867,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                             {calc.profit > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                             {formatSilver(Math.abs(calc.profit))}
                           </div>
-                        ) : <span className="text-[10px] text-gray-600 italic">—</span>}
+                        ) : <span className="text-label text-gray-600 italic">â€”</span>}
                       </td>
                     </motion.tr>
                   );
@@ -895,7 +895,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         </div>
       </div>
 
-      {/* ─── Mobile Card Layout for Small Screens ─── */}
+      {/* â”€â”€â”€ Mobile Card Layout for Small Screens â”€â”€â”€ */}
       <div className="block md:hidden space-y-4">
         <AnimatePresence mode="popLayout">
           {craftList.map((item, idx) => {
@@ -912,13 +912,13 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                     <img src={item.icon} alt={`${item.name} crafting item`} className="w-12 h-12 object-contain shrink-0" referrerPolicy="no-referrer" loading="lazy" />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-bold text-white truncate">{item.name}</div>
-                      <div className="text-xs text-primary/40 font-mono tracking-tight truncate">{item.id}</div>
+                      <div className="text-xs text-primary/70 font-mono tracking-tight truncate">{item.id}</div>
                     </div>
                   </div>
                   {confirmDeleteItem === item.id ? (
                     <div className="flex items-center gap-1">
-                      <button onClick={() => removeCraftItem(item.id)} className="px-2 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Confirm</button>
-                      <button onClick={() => setConfirmDeleteItem(null)} className="px-2 py-1 bg-white/5 text-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Cancel</button>
+                      <button onClick={() => removeCraftItem(item.id)} className="px-2 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-tiny font-black uppercase tracking-widest transition-all">Confirm</button>
+                      <button onClick={() => setConfirmDeleteItem(null)} className="px-2 py-1 bg-white/5 text-primary/30 rounded-lg text-tiny font-black uppercase tracking-widest transition-all">Cancel</button>
                     </div>
                   ) : (
                     <button onClick={() => setConfirmDeleteItem(item.id)} className="p-2 text-gray-600 hover:text-red-500 transition-colors shrink-0" aria-label={`Remove ${item.name} from crafting list`}>
@@ -956,9 +956,9 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 {calc.bestCity && (
                   <div className="mb-3">
                     <div className="text-xs text-primary/60 uppercase tracking-wider mb-1">Best City</div>
-                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-on-surface border-primary/20"}`}>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-sm font-bold ${CITY_COLORS[calc.bestCity] ?? "bg-gray-800 text-foreground border-primary/20"}`}>
                       <MapPin className="w-3 h-3" />{calc.bestCity}
-                      <span className="text-[9px] opacity-70">+15%</span>
+                      <span className="text-tiny opacity-70">+15%</span>
                     </div>
                   </div>
                 )}
@@ -1001,29 +1001,29 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 alt="Search illustration"
                 className="w-16 h-16 opacity-60"
               />
-              <p className="text-primary/50 text-sm">No items to craft yet</p>
+              <p className="text-primary/75 text-sm">No items to craft yet</p>
               <p className="text-primary/30 text-xs">Search for a craftable item above</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* ─── City Price Comparison (Best Market) ─── */}
+      {/* â”€â”€â”€ City Price Comparison (Best Market) â”€â”€â”€ */}
       {hasCityPrices && (
         <div className="space-y-3">
           <div className="flex items-center gap-3 px-1">
             <BarChart2 className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-black text-white uppercase tracking-wider italic">Best Market to Sell</h2>
-            <span className="text-xs text-primary/50 italic ml-1">— highest price is highlighted</span>
+            <span className="text-xs text-primary/75 italic ml-1">â€” highest price is highlighted</span>
           </div>
           <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-black/20 border-b border-primary/10">
-                  <th className="p-3 text-[10px] font-black text-primary/60 uppercase tracking-widest" scope="col">Item</th>
+                  <th className="p-3 text-label font-black text-primary/60 uppercase tracking-widest" scope="col">Item</th>
                   {CITIES.map(city => (
-                    <th key={city} className="p-3 text-[10px] font-black text-primary/60 uppercase tracking-widest text-center" scope="col">
-                      <div className={`inline-block px-2 py-1 rounded-md border text-[9px] ${CITY_COLORS[city] ?? ""}`}>{city}</div>
+                    <th key={city} className="p-3 text-label font-black text-primary/60 uppercase tracking-widest text-center" scope="col">
+                      <div className={`inline-block px-2 py-1 rounded-md border text-tiny ${CITY_COLORS[city] ?? ""}`}>{city}</div>
                     </th>
                   ))}
                 </tr>
@@ -1055,7 +1055,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                                 {formatSilver(price)}
                               </div>
                             ) : (
-                              <span className="text-[10px] text-gray-700">—</span>
+                              <span className="text-label text-gray-700">â€”</span>
                             )}
                           </td>
                         );
@@ -1069,17 +1069,17 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         </div>
       )}
 
-      {/* ─── Shopping List ─── */}
+      {/* â”€â”€â”€ Shopping List â”€â”€â”€ */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 px-1">
           <Plus className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-black text-white uppercase tracking-wider italic">Shopping List</h2>
-          <span className="text-xs text-primary/50 italic ml-1">
-            — bring full amount, get <span className="text-emerald-400 font-bold">{rrr.toFixed(1)}% back</span> after crafting
+          <span className="text-xs text-primary/75 italic ml-1">
+            â€” bring full amount, get <span className="text-emerald-400 font-bold">{rrr.toFixed(1)}% back</span> after crafting
           </span>
         </div>
         <div className="glass-panel rounded-3xl overflow-hidden overflow-x-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+          <table className="w-full text-left border-collapse" style={{ minWidth: '700px' }}>
             <thead>
               <tr className="bg-black/20 border-b border-primary/10">
                 <th className="p-3 w-10" scope="col" />
@@ -1087,7 +1087,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center" scope="col">Bring</th>
                 <th className="p-3 text-xs font-bold text-success uppercase tracking-wider text-center hidden sm:table-cell" scope="col">
                   Return
-                  <div className="text-xs text-primary/50 font-normal normal-case tracking-normal">(uncheck if not returned)</div>
+                  <div className="text-xs text-primary/75 font-normal normal-case tracking-normal">(uncheck if not returned)</div>
                 </th>
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center" scope="col">Have</th>
                 <th className="p-3 text-xs font-bold text-primary/60 uppercase tracking-wider text-center" scope="col">Net Buy</th>
@@ -1157,10 +1157,10 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                               setSourceCities(prev => ({ ...prev, [item.id]: c }));
                               setOverriddenCities(prev => new Set(prev).add(item.id));
                             }}
-                            className="bg-black/40 border border-primary/20 rounded-xl py-1.5 pl-2 pr-7 text-[11px] font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background appearance-none">
+                            className="bg-black/40 border border-primary/20 rounded-xl py-1.5 pl-2 pr-7 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background appearance-none">
                             {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
-                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/50 w-3 h-3 pointer-events-none" />
+                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/75 w-3 h-3 pointer-events-none" />
                         </div>
                       </div>
                     </td>
@@ -1184,8 +1184,8 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                         />
                         {livePrice > 0 && (
                           <div className="flex items-center gap-1 opacity-50">
-                            <span className="text-[8px] font-black uppercase tracking-tighter text-primary/60">Live:</span>
-                            <span className="text-[9px] font-mono font-bold text-on-surface">
+                            <span className="text-micro font-black uppercase tracking-tighter text-primary/60">Live:</span>
+                            <span className="text-tiny font-mono font-bold text-foreground">
                               {formatSilver(livePrice).replace(' Silver', '')}
                             </span>
                           </div>
@@ -1206,7 +1206,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                       alt="Shopping list illustration"
                       className="w-16 h-16 opacity-60"
                     />
-                    <p className="text-primary/50 text-sm">Add items to craft to see the shopping list</p>
+                    <p className="text-primary/75 text-sm">Add items to craft to see the shopping list</p>
                   </div>
                 </td></tr>
               )}
@@ -1215,7 +1215,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
         </div>
       </div>
 
-      {/* ─── Mobile Card Layout for Shopping List ─── */}
+      {/* â”€â”€â”€ Mobile Card Layout for Shopping List â”€â”€â”€ */}
       <div className="block lg:hidden space-y-3">
         {shoppingList.map(item => {
           const netBuy = Math.max(0, Math.ceil(item.requiredNet) - item.have);
@@ -1230,7 +1230,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                   <img src={item.icon} alt={`${item.name} shopping item`} className="w-10 h-10 object-contain shrink-0" referrerPolicy="no-referrer" loading="lazy" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold text-white truncate">{item.name}</div>
-                    <div className="text-xs text-primary/40 font-mono tracking-tight truncate">{item.id}</div>
+                    <div className="text-xs text-primary/70 font-mono tracking-tight truncate">{item.id}</div>
                   </div>
                 </div>
                 {item.isCraftable && (
@@ -1285,7 +1285,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                     setSourceCities(prev => ({ ...prev, [item.id]: c }));
                     setOverriddenCities(prev => new Set(prev).add(item.id));
                   }}
-                  className="w-full bg-black/40 border border-primary/20 rounded-xl py-1.5 pl-2 pr-7 text-[11px] font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background appearance-none">
+                  className="w-full bg-black/40 border border-primary/20 rounded-xl py-1.5 pl-2 pr-7 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background appearance-none">
                   {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -1311,8 +1311,8 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                   />
                   {livePrice > 0 && (
                     <div className="flex items-center gap-1 opacity-50">
-                      <span className="text-[8px] font-black uppercase tracking-tighter text-primary/60">Live:</span>
-                      <span className="text-[9px] font-mono font-bold text-on-surface">
+                      <span className="text-micro font-black uppercase tracking-tighter text-primary/60">Live:</span>
+                      <span className="text-tiny font-mono font-bold text-foreground">
                         {formatSilver(livePrice).replace(' Silver', '')}
                       </span>
                     </div>
@@ -1337,42 +1337,42 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 alt="Shopping list illustration"
                 className="w-14 h-14 opacity-60"
               />
-              <p className="text-primary/50 text-sm">Add items to craft to see the shopping list</p>
+              <p className="text-primary/75 text-sm">Add items to craft to see the shopping list</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* ─── Footer Summary ─── */}
+      {/* â”€â”€â”€ Footer Summary â”€â”€â”€ */}
       {craftList.length > 0 && (
         <div className="glass-panel p-4 rounded-2xl border border-primary/10">
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
             <div className="text-center">
-              <div className="text-[9px] font-black text-primary/40 uppercase tracking-widest">Station Fees</div>
+              <div className="text-tiny font-black text-primary/70 uppercase tracking-widest">Station Fees</div>
               <div className="text-lg font-black text-white">{formatSilver(totalFees).replace(' Silver', '')}</div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] font-black text-primary/40 uppercase tracking-widest">Material Cost</div>
+              <div className="text-tiny font-black text-primary/70 uppercase tracking-widest">Material Cost</div>
               <div className="text-lg font-black text-white">{formatSilver(totalMat).replace(' Silver', '')}</div>
             </div>
             <div className="h-8 w-px bg-primary/10 hidden sm:block" />
             <div className="text-center">
-              <div className="text-[9px] font-black text-primary/40 uppercase tracking-widest">Total Sell Value</div>
+              <div className="text-tiny font-black text-primary/70 uppercase tracking-widest">Total Sell Value</div>
               <div className="text-lg font-black text-primary">{formatSilver(totalSell).replace(' Silver', '')}</div>
             </div>
             <div className={`flex flex-col items-center px-4 py-2 rounded-xl border ${
               totalProfit > 0 ? "bg-emerald-500/10 border-emerald-500/30"
               : totalProfit < 0 ? "bg-red-500/10 border-red-500/30"
               : "bg-black/20 border-primary/10"}`}>
-              <div className="text-[9px] font-black text-primary/60 uppercase tracking-widest">Total Profit</div>
+              <div className="text-tiny font-black text-primary/60 uppercase tracking-widest">Total Profit</div>
               <div className={`text-xl font-black flex items-center gap-1.5 ${
                 totalProfit > 0 ? "text-emerald-400" : totalProfit < 0 ? "text-red-400" : "text-primary/70"}`}>
                 {totalProfit > 0 ? <TrendingUp className="w-4 h-4" /> : totalProfit < 0 ? <TrendingDown className="w-4 h-4" /> : null}
                 {formatSilver(Math.abs(totalProfit)).replace(' Silver', '')}
               </div>
               {(totalFees + totalMat) > 0 && (
-                <div className={`text-[10px] font-bold ${
-                  totalProfit > 0 ? "text-emerald-500" : totalProfit < 0 ? "text-red-500" : "text-primary/50"}`}>
+                <div className={`text-label font-bold ${
+                  totalProfit > 0 ? "text-emerald-500" : totalProfit < 0 ? "text-red-500" : "text-primary/75"}`}>
                   {totalProfit > 0 ? "+" : ""}{((totalProfit / (totalFees + totalMat)) * 100).toFixed(1)}% ROI
                 </div>
               )}
@@ -1383,8 +1383,8 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
       <div className="flex items-start gap-3 p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-        <p className="text-[10px] text-primary/50 leading-relaxed">
-          <strong className="text-primary/60">RRR is cashback:</strong> You bring the full ingredient amount — the station returns a portion after crafting.
+        <p className="text-label text-primary/75 leading-relaxed">
+          <strong className="text-primary/60">RRR is cashback:</strong> You bring the full ingredient amount â€” the station returns a portion after crafting.
           <strong className="text-primary/60"> Station Fee</strong> is the silver you pay the station per craft (check in-game before entering).
           <strong className="text-primary/60"> Default City</strong> auto-follows the item's best crafting city unless you manually change it.
         </p>
@@ -1393,14 +1393,14 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
       {/* Not logged in notice */}
       {!user && craftList.length > 0 && (
         <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/10 rounded-xl">
-          <Save className="w-4 h-4 text-primary/40 shrink-0" />
-          <p className="text-[10px] text-primary/40">
+          <Save className="w-4 h-4 text-primary/70 shrink-0" />
+          <p className="text-label text-primary/70">
             <strong className="text-primary/60">Sign in</strong> to enable auto-save and keep your crafting plans across sessions.
           </p>
         </div>
       )}
 
-      {/* ── Finalize Plan Modal ── */}
+      {/* â”€â”€ Finalize Plan Modal â”€â”€ */}
       <AnimatePresence>
         {showFinalizeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1415,12 +1415,12 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-white uppercase tracking-tight">Finalize Plan</h3>
-                  <p className="text-xs text-primary/40">Give this plan a name to save it permanently.</p>
+                  <p className="text-xs text-primary/70">Give this plan a name to save it permanently.</p>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Plan Name</label>
+                <label className="text-label font-black text-primary/70 uppercase tracking-widest">Plan Name</label>
                 <input
                   type="text" value={finalizeName} onChange={e => setFinalizeName(e.target.value)}
                   autoFocus
@@ -1429,7 +1429,7 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Notes <span className="text-primary/20 font-normal normal-case">(optional)</span></label>
+                <label className="text-label font-black text-primary/70 uppercase tracking-widest">Notes <span className="text-primary/20 font-normal normal-case">(optional)</span></label>
                 <textarea
                   value={finalizeNote} onChange={e => setFinalizeNote(e.target.value)}
                   rows={2} placeholder="Remind yourself anything useful..."
@@ -1439,11 +1439,11 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
 
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setShowFinalizeModal(false)}
-                  className="flex-1 py-3 bg-white/5 text-primary/40 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all">
+                  className="flex-1 py-3 bg-white/5 text-primary/70 rounded-xl font-black uppercase text-label tracking-widest hover:bg-white/10 transition-all">
                   Cancel
                 </button>
                 <button onClick={confirmFinalize} disabled={!finalizeName.trim()}
-                  className="flex-1 py-3 bg-emerald-500 hover:brightness-110 text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+                  className="flex-1 py-3 bg-emerald-500 hover:brightness-110 text-white rounded-xl font-black uppercase text-label tracking-widest transition-all disabled:opacity-40 flex items-center justify-center gap-2">
                   <Save className="w-3.5 h-3.5" /> Save Plan
                 </button>
               </div>
@@ -1454,3 +1454,11 @@ export default function BaseCalculator({ server, title, icon, storageKey, filter
     </div>
   );
 }
+
+
+
+
+
+
+
+

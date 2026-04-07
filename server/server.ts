@@ -99,20 +99,16 @@ async function startServer() {
   app.get("/api/history/:itemId", async (req, res) => {
     try {
       const { itemId } = req.params;
-      const { locations, qualities, server, date } = req.query;
+      const { locations, qualities, date } = req.query;
 
-      let baseUrl = "https://www.albion-online-data.com/api/v2/stats/history/";
-      if (server === "East") {
-        baseUrl = "https://east.albion-online-data.com/api/v2/stats/history/";
-      } else if (server === "Europe") {
-        baseUrl = "https://europe.albion-online-data.com/api/v2/stats/history/";
-      }
+      // AODP history endpoint uses regional subdomains for server routing (not a query param)
+      const baseUrl = "https://www.albion-online-data.com/api/v2/stats/history/";
 
       const url = `${baseUrl}${itemId}`;
 
       // Create a unique cache key for history
       const timeScale = req.query['time-scale'] || '1';
-      const cacheKey = `history_${itemId}_${server}_${locations || ''}_${qualities || ''}_${timeScale}_${date || ''}`;
+      const cacheKey = `history_${itemId}_${locations || ''}_${qualities || ''}_${timeScale}_${date || ''}`;
 
       // Check if data is in cache
       const cachedData = cache.get(cacheKey);

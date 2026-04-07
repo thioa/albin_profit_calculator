@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { AlbionPrice } from "../../types/albion";
 import { calculateProfit, formatSilver, getFreshnessLevel, getProfitPercentage, formatTimeAgo } from "../../lib/economy-utils";
 import { TrendingUp, TrendingDown, Clock, MapPin, Zap, ChevronDown, History } from "lucide-react";
@@ -29,7 +29,7 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
       case "good": return { color: "text-blue-500", label: "Good" };
       case "fair": return { color: "text-yellow-500", label: "Fair" };
       case "stale": return { color: "text-red-500", label: "Stale" };
-      default: return { color: "text-primary/50", label: "?" };
+      default: return { color: "text-primary/75", label: "?" };
     }
   };
 
@@ -72,7 +72,7 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
           <>
             <div className="mt-3 flex items-baseline justify-between">
               <div>
-                <p className="text-xs text-primary/50 uppercase tracking-wider sm:hidden">Sell</p>
+                <p className="text-xs text-primary/75 uppercase tracking-wider sm:hidden">Sell</p>
                 <span className="text-2xl sm:text-xl font-mono font-bold text-foreground">
                   {formatSilver(price.sell_price_min)}
                 </span>
@@ -90,11 +90,13 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
               <div className="flex items-center gap-2">
                 <Clock className={cn("w-3 h-3", freshnessUI.color)} />
-                <span className="text-xs text-primary/50">{formatTimeAgo(price.sell_price_min_date)}</span>
+                <span className="text-xs text-primary/75">{formatTimeAgo(price.sell_price_min_date)}</span>
               </div>
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1 text-xs text-primary/50 hover:text-primary transition-colors"
+                aria-expanded={expanded}
+                aria-label={expanded ? 'Show less details' : 'Show more details'}
+                className="flex items-center gap-1 text-xs text-primary/75 hover:text-primary transition-colors"
               >
                 {expanded ? 'Less' : 'More'}
                 <ChevronDown className={cn("w-3 h-3 transition-transform", expanded && "rotate-180")} />
@@ -102,7 +104,7 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
             </div>
           </>
         ) : (
-          <div className="mt-3 text-center text-primary/50 text-sm">
+          <div className="mt-3 text-center text-primary/75 text-sm">
             No recent data
             {price.historical_avg && (
               <div className="mt-2 flex items-center justify-center gap-2 text-xs">
@@ -119,18 +121,18 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
         <div className="px-4 pb-4 space-y-3">
           <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg">
             <div>
-              <p className="text-xs text-primary/50 uppercase tracking-wider">Max Buy</p>
+              <p className="text-xs text-primary/75 uppercase tracking-wider">Max Buy</p>
               <span className="text-sm font-mono text-foreground/80">{formatSilver(price.buy_price_max)}</span>
             </div>
             <div>
-              <p className="text-xs text-primary/50 uppercase tracking-wider">Tax</p>
+              <p className="text-xs text-primary/75 uppercase tracking-wider">Tax</p>
               <span className="text-sm font-mono text-primary">-{formatSilver(profit.totalFees)}</span>
             </div>
           </div>
 
           {price.historical_avg && (
             <div className="flex justify-between items-center p-2 bg-muted/30 rounded-lg text-xs">
-              <span className="text-primary/50 font-mono uppercase">Hist. Avg</span>
+              <span className="text-primary/75 font-mono uppercase">Hist. Avg</span>
               <span className="text-primary font-mono">{formatSilver(price.historical_avg)}</span>
             </div>
           )}
@@ -153,3 +155,10 @@ export default function PriceCard({ price, isPremium, isLowest, buyPrice, isBuyC
     </Card>
   );
 }
+
+
+
+
+
+
+

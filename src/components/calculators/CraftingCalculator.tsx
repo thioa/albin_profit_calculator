@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Package } from 'lucide-react';
 import BaseCalculator from './BaseCalculator';
 import { AlbionServer, AlbionItem } from '../../types/albion';
@@ -22,3 +22,11 @@ export default function CraftingCalculator({ server, injectedItem, onItemInjecte
     />
   );
 }
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { AlbionItem, AlbionPrice, AlbionServer } from "../../types/albion";
 import { fetchPrices, fetchHistory } from "../../lib/albion-api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -109,7 +109,7 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
                 <div className="relative group">
                   <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest cursor-help">{selectedItem.category}</span>
                   {selectedItem.category === "Unknown" && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black border border-primary/10 rounded text-[10px] text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black border border-primary/10 rounded text-label text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                       This item's category is not specified in our simplified dataset.
                     </div>
                   )}
@@ -119,7 +119,7 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
                 </span>
               </div>
             </div>
-            <div className="md:ml-auto flex items-center gap-2 text-primary/50 text-xs bg-muted/30 p-4 rounded-2xl border border-border">
+            <div className="md:ml-auto flex items-center gap-2 text-primary/75 text-xs bg-muted/30 p-4 rounded-2xl border border-border">
               <Info className="w-4 h-4" />
               <p className="max-w-50">Data is crowdsourced via AODP. Prices may vary slightly from in-game values.</p>
             </div>
@@ -129,7 +129,7 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="w-12 h-12 text-primary animate-spin" />
-              <p className="text-primary/50 font-mono uppercase tracking-widest animate-pulse">Fetching Market Data...</p>
+              <p className="text-primary/75 font-mono uppercase tracking-widest animate-pulse">Fetching Market Data...</p>
             </div>
           ) : error ? (
             <div className="bg-destructive/10 border border-destructive/50 p-8 rounded-3xl text-center space-y-4">
@@ -166,10 +166,18 @@ export default function PriceChecker({ server }: PriceCheckerProps) {
             alt="Empty state illustration"
             className="w-40 h-40 mx-auto mb-6 opacity-50"
           />
-          <h3 className="text-2xl font-bold text-primary/50 uppercase tracking-widest">Select an item to begin</h3>
+          <h3 className="text-2xl font-bold text-primary/75 uppercase tracking-widest">Select an item to begin</h3>
           <p className="text-muted-foreground max-w-xs mx-auto">Use the search bar above to find items from the Royal Cities and Caerleon.</p>
         </motion.div>
       )}
     </div>
   );
 }
+
+
+
+
+
+
+
+

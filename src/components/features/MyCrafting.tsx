@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useAuth, CraftingPlan, PLAN_LIMITS } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -87,7 +87,7 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
         <div>
           <h3 className="text-2xl font-black text-white uppercase tracking-tight">Sign In Required</h3>
           <p className="text-primary/70 max-w-sm mx-auto mt-2 text-sm">
-            Login to save and manage your crafting plans — with all manual prices preserved.
+            Login to save and manage your crafting plans â€” with all manual prices preserved.
           </p>
         </div>
       </div>
@@ -126,8 +126,8 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
             </span>
           )}
         </div>
-        <p className="text-primary/50 text-sm mb-4">
-          Save your crafting setups — including manual prices — so you never have to re-enter them again.
+        <p className="text-primary/75 text-sm mb-4">
+          Save your crafting setups â€” including manual prices â€” so you never have to re-enter them again.
         </p>
 
         {/* Quota bar (free users only) */}
@@ -135,11 +135,11 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
           <div className="p-4 bg-black/30 rounded-2xl border border-primary/10 flex items-center justify-between gap-4">
             <div className="flex-1">
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-bold text-primary/40 uppercase tracking-wider">Plan Storage</span>
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-wider">Plan Storage</span>
                 <span className="text-xs font-bold text-primary/70">{finalisedCount} / {planLimit}</span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${finalisedCount >= planLimit ? 'bg-error' : 'bg-primary'}`}
+                <div className={`h-full rounded-full transition-all ${finalisedCount >= planLimit ? 'bg-destructive' : 'bg-primary'}`}
                   style={{ width: `${Math.min((finalisedCount / (planLimit as number)) * 100, 100)}%` }} />
               </div>
             </div>
@@ -153,8 +153,8 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/40" />
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/70" />
           <input type="text" placeholder="Search plans..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full h-12 bg-black/20 border border-primary/20 rounded-xl pl-10 pr-4 text-sm text-white placeholder:text-primary/30 focus:outline-none focus:border-primary/40 transition-all" />
         </div>
@@ -162,14 +162,14 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
         <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-primary/10">
           {(['all', 'crafting', 'refining', 'cooking'] as const).map(t => (
             <button key={t} onClick={() => setFilterType(t)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all capitalize ${filterType === t ? 'bg-primary text-black' : 'text-primary/40 hover:text-primary'}`}>
+              className={`px-3 py-1.5 rounded-lg text-label font-black uppercase tracking-widest transition-all capitalize ${filterType === t ? 'bg-primary text-black' : 'text-primary/70 hover:text-primary'}`}>
               {t}
             </button>
           ))}
         </div>
 
         <button onClick={() => setShowDrafts(v => !v)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${showDrafts ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-black/20 border-primary/10 text-primary/30 hover:text-primary'}`}>
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-label font-black uppercase tracking-widest transition-all ${showDrafts ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-black/20 border-primary/10 text-primary/30 hover:text-primary'}`}>
           <FileEdit className="w-3 h-3" /> Show Drafts
         </button>
 
@@ -195,11 +195,11 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
           />
           <div className="text-center">
             <p className="text-white font-bold">No crafting plans saved yet</p>
-            <p className="text-primary/40 text-sm mt-1 max-w-xs">
-              Go to Crafting, add items and set prices — they'll auto-save as a draft. Then click <strong className="text-primary/70">Finalize Plan</strong> to name and keep it.
+            <p className="text-primary/70 text-sm mt-1 max-w-xs">
+              Go to Crafting, add items and set prices â€” they'll auto-save as a draft. Then click <strong className="text-primary/70">Finalize Plan</strong> to name and keep it.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-primary/25 uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-label text-primary/25 uppercase tracking-widest">
             <Plus className="w-3 h-3" /> Start in the Crafting tab
           </div>
         </div>
@@ -232,9 +232,9 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm text-white truncate group-hover:text-primary transition-colors">{plan.name}</h4>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <p className={`text-[9px] font-black uppercase tracking-widest ${cfg.color}`}>{cfg.label}</p>
+                        <p className={`text-tiny font-black uppercase tracking-widest ${cfg.color}`}>{cfg.label}</p>
                         {plan.isDraft && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-primary/25 bg-white/5 px-1.5 py-0.5 rounded">Draft</span>
+                          <span className="text-micro font-black uppercase tracking-widest text-primary/25 bg-white/5 px-1.5 py-0.5 rounded">Draft</span>
                         )}
                       </div>
                     </div>
@@ -249,26 +249,26 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
                             className="w-8 h-8 rounded-lg border border-primary/10 bg-black/20 object-contain p-0.5" referrerPolicy="no-referrer" />
                         ))}
                         {itemCount > 4 && (
-                          <div className="w-8 h-8 rounded-lg border border-primary/10 bg-black/20 flex items-center justify-center text-[9px] font-black text-primary/30">+{itemCount - 4}</div>
+                          <div className="w-8 h-8 rounded-lg border border-primary/10 bg-black/20 flex items-center justify-center text-tiny font-black text-primary/30">+{itemCount - 4}</div>
                         )}
                       </div>
-                    ) : <p className="text-[10px] text-primary/20 italic">No items</p>}
+                    ) : <p className="text-label text-primary/20 italic">No items</p>}
                   </div>
 
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-px bg-primary/5 mx-4 mb-3 rounded-xl overflow-hidden text-center">
                     <div className="bg-black/30 px-3 py-2">
-                      <p className="text-[8px] text-primary/25 font-black uppercase tracking-widest">Items</p>
+                      <p className="text-micro text-primary/25 font-black uppercase tracking-widest">Items</p>
                       <p className="text-sm font-black text-white">{itemCount}</p>
                     </div>
                     <div className="bg-black/30 px-3 py-2">
-                      <p className="text-[8px] text-primary/25 font-black uppercase tracking-widest">Last Profit</p>
+                      <p className="text-micro text-primary/25 font-black uppercase tracking-widest">Last Profit</p>
                       {profit != null ? (
                         <p className={`text-sm font-black flex items-center justify-center gap-0.5 ${profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {profit >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                           {formatSilver(Math.abs(profit)).replace(' Silver', '')}
                         </p>
-                      ) : <p className="text-sm font-black text-primary/20">—</p>}
+                      ) : <p className="text-sm font-black text-primary/20">â€”</p>}
                     </div>
                   </div>
 
@@ -278,22 +278,22 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
                       <button onClick={() => setExpandedNotes(expandedNotes === plan.id ? null : plan.id)}
                         className="w-full flex items-start gap-2 p-2.5 bg-black/20 rounded-xl border border-primary/5 text-left hover:border-primary/15 transition-all">
                         <StickyNote className="w-3 h-3 text-primary/25 shrink-0 mt-0.5" />
-                        <p className={`text-[10px] text-primary/35 leading-relaxed ${expandedNotes === plan.id ? '' : 'line-clamp-1'}`}>{plan.notes}</p>
+                        <p className={`text-label text-primary/35 leading-relaxed ${expandedNotes === plan.id ? '' : 'line-clamp-1'}`}>{plan.notes}</p>
                       </button>
                     </div>
                   )}
 
                   {/* Footer */}
                   <div className="px-4 pb-4 flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1 text-[9px] text-primary/20">
+                    <span className="flex items-center gap-1 text-tiny text-primary/20">
                       <Clock className="w-2.5 h-2.5" />{formatTimeAgo(plan.updatedAt)}
                     </span>
 
                     <div className="flex items-center gap-1.5">
                       {isDeleting ? (
                         <>
-                          <button onClick={() => handleDelete(plan.id)} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Confirm</button>
-                          <button onClick={() => setConfirmDelete(null)} className="px-3 py-1.5 bg-white/5 text-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Cancel</button>
+                          <button onClick={() => handleDelete(plan.id)} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/20 rounded-lg text-tiny font-black uppercase tracking-widest transition-all">Confirm</button>
+                          <button onClick={() => setConfirmDelete(null)} className="px-3 py-1.5 bg-white/5 text-primary/30 rounded-lg text-tiny font-black uppercase tracking-widest transition-all">Cancel</button>
                         </>
                       ) : (
                         <>
@@ -301,7 +301,7 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => handleOpen(plan)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 rounded-lg text-tiny font-black uppercase tracking-widest transition-all">
                             <ExternalLink className="w-3 h-3" /> Open
                           </button>
                         </>
@@ -321,3 +321,11 @@ export default function MyCrafting({ onNavigateToTab }: MyCraftingProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+

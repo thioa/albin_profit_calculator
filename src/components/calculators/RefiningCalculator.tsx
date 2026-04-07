@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Pickaxe } from 'lucide-react';
 import BaseCalculator from './BaseCalculator';
 import { AlbionServer, AlbionItem } from '../../types/albion';
@@ -20,3 +20,11 @@ export default function RefiningCalculator({ server, injectedItem, onItemInjecte
     />
   );
 }
+
+
+
+
+
+
+
+

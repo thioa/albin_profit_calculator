@@ -1,16 +1,18 @@
-import { useState, useEffect, useMemo } from "react";
-import { AlbionItem, AlbionPrice, ALBION_CITIES, ItemQuality, AlbionCity, AlbionServer } from "../../types/albion";
-import { fetchPrices, fetchHistory } from "../../lib/albion-api";
+﻿import { useState, useEffect } from "react";
+import { AlbionItem, AlbionServer } from "../../types/albion";
 import SearchBar from "../common/SearchBar";
 import PriceCard from "../common/PriceCard";
-import CityFilter from "../common/CityFilter";
-import TopFlipping, { VerificationStatus, SortOption } from "../features/TopFlipping";
+import TopFlipping from "../features/TopFlipping";
 import MarketPulse from "../features/MarketPulse";
 import CraftingCalculator from "../calculators/CraftingCalculator";
 import RefiningCalculator from "../calculators/RefiningCalculator";
 import CookingCalculator from "../calculators/CookingCalculator";
 import ProfitScanner from "../features/ProfitScanner";
 import Library from "../library/Library";
+import PrimaryFilters from "../market/PrimaryFilters";
+import SecondaryFilters from "../market/SecondaryFilters";
+import { useFilters } from "../../hooks/useFilters";
+import { useMarketData } from "../../hooks/useMarketData";
 import { Loader2, Settings, Info, AlertCircle, Globe, Search, TrendingUp, Clock, Filter, Check, ChevronDown, Sparkles, Hammer, Pickaxe, ChefHat, BookOpen, Zap, Clipboard, Menu, SlidersHorizontal, Bell } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,141 +99,40 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
+  // Use custom hook for all filters
+  const {
+    isPremium,
+    selectedQualities,
+    setSelectedQualities,
+    selectedCities,
+    setSelectedCities,
+    maxAgeHours,
+    setMaxAgeHours,
+    hideSuspicious,
+    allowedStatuses,
+    setAllowedStatuses,
+    preferredEnchantments,
+    setPreferredEnchantments,
+    selectedCategories,
+    setSelectedCategories,
+    selectedSubCategory,
+    setSelectedSubCategory,
+    sortBy,
+    setSortBy,
+    buyPrice,
+    setBuyPrice,
+    categories,
+    subCategories,
+  } = useFilters();
+
   const unreadNotifications = notifications.filter(n => !n.read).length;
   const [selectedItem, setSelectedItem] = useState<AlbionItem | null>(null);
-  const [prices, setPrices] = useState<AlbionPrice[]>([]);
-  const [loading, setLoading] = useState(false);
   const [pendingItem, setPendingItem] = useState<{ item: AlbionItem; targetTab: string; timestamp: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const [buyPrice, setBuyPrice] = useState<number>(0);
-  const servers: { id: AlbionServer; label: string }[] = [
-    { id: "West", label: "Americas (West)" },
-    { id: "East", label: "Asia (East)" },
-    { id: "Europe", label: "Europe" },
-  ];
+  // Use custom hook for market data
+  const { prices, loading, error, loadPrices } = useMarketData(selectedItem, selectedCities, selectedQualities, server);
 
-  // Persistent Filters
-  const [isPremium, setIsPremium] = useState(() => {
-    const saved = localStorage.getItem("albion_is_premium");
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-  const [selectedQualities, setSelectedQualities] = useState<ItemQuality[]>(() => {
-    const saved = localStorage.getItem("albion_qualities");
-    return saved !== null ? JSON.parse(saved) : [1];
-  });
-  const [selectedCities, setSelectedCities] = useState<AlbionCity[]>(() => {
-    const saved = localStorage.getItem("albion_cities");
-    return saved !== null ? JSON.parse(saved) : [...ALBION_CITIES];
-  });
   const [buyCity, setBuyCity] = useState<string | null>(null);
-  const [maxAgeHours, setMaxAgeHours] = useState<number>(() => {
-    const saved = localStorage.getItem("albion_max_age");
-    return saved !== null ? JSON.parse(saved) : 24;
-  });
-  const [hideSuspicious, setHideSuspicious] = useState<boolean>(() => {
-    const saved = localStorage.getItem("albion_hide_suspicious");
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-  const [allowedStatuses, setAllowedStatuses] = useState<VerificationStatus[]>(() => {
-    const saved = localStorage.getItem("albion_allowed_statuses");
-    return saved !== null ? JSON.parse(saved) : ['verified', 'unknown'];
-  });
-  const [preferredEnchantments, setPreferredEnchantments] = useState<number[]>(() => {
-    const saved = localStorage.getItem("albion_preferred_enchantments");
-    return saved !== null ? JSON.parse(saved) : [0, 1, 2, 3, 4];
-  });
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem("albion_selected_categories");
-    return saved !== null ? JSON.parse(saved) : ["All"];
-  });
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string>(() => {
-    const saved = localStorage.getItem("albion_selected_sub_category");
-    return saved || "All";
-  });
-  const [sortBy, setSortBy] = useState<SortOption>(() => {
-    const saved = localStorage.getItem("albion_sort_by");
-    return (saved as SortOption) || 'profit';
-  });
-
-  useEffect(() => {
-    localStorage.setItem("albion_is_premium", JSON.stringify(isPremium));
-    localStorage.setItem("albion_qualities", JSON.stringify(selectedQualities));
-    localStorage.setItem("albion_cities", JSON.stringify(selectedCities));
-    localStorage.setItem("albion_max_age", JSON.stringify(maxAgeHours));
-    localStorage.setItem("albion_hide_suspicious", JSON.stringify(hideSuspicious));
-    localStorage.setItem("albion_allowed_statuses", JSON.stringify(allowedStatuses));
-    localStorage.setItem("albion_preferred_enchantments", JSON.stringify(preferredEnchantments));
-    localStorage.setItem("albion_selected_categories", JSON.stringify(selectedCategories));
-    localStorage.setItem("albion_selected_sub_category", selectedSubCategory);
-    localStorage.setItem("albion_sort_by", sortBy);
-  }, [isPremium, selectedQualities, selectedCities, maxAgeHours, hideSuspicious, allowedStatuses, preferredEnchantments, selectedCategories, selectedSubCategory, sortBy]);
-
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    cats.add("All");
-    itemsData.forEach(item => {
-      if (item.category && item.category !== "Unknown") cats.add(item.category);
-    });
-    return Array.from(cats).sort();
-  }, []);
-
-  const subCategories = useMemo(() => {
-    const subs = new Set<string>();
-    subs.add("All");
-    itemsData.forEach(item => {
-      if (!selectedCategories.includes("All") && !selectedCategories.includes(item.category)) return;
-      if (item.subCategory && item.subCategory !== "Unknown") subs.add(item.subCategory);
-    });
-    return Array.from(subs).sort();
-  }, [selectedCategories]);
-
-  const getBaseIdAndEnchantment = (id: string) => {
-    const parts = id.split("@");
-    return {
-      baseId: parts[0],
-      enchantment: parts.length > 1 ? parseInt(parts[1]) : 0
-    };
-  };
-
-  const handleEnchantmentChange = (level: number) => {
-    let newEnchantments: number[];
-    if (preferredEnchantments.includes(level)) {
-      if (preferredEnchantments.length > 1) {
-        newEnchantments = preferredEnchantments.filter(e => e !== level);
-      } else {
-        newEnchantments = preferredEnchantments;
-      }
-    } else {
-      newEnchantments = [...preferredEnchantments, level];
-    }
-    setPreferredEnchantments(newEnchantments);
-  };
-
-  const getEnchantmentColor = (level: number, isActive: boolean) => {
-    if (!isActive) return "bg-gray-800 text-sidebar-foreground/60 hover:bg-gray-700 hover:text-white";
-    switch (level) {
-      case 1: return "bg-green-600 text-white shadow-[0_0_10px_rgba(22,163,74,0.3)]";
-      case 2: return "bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]";
-      case 3: return "bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]";
-      case 4: return "bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.3)]";
-      default: return "bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_0_10px_rgba(212,175,55,0.3)]";
-    }
-  };
-
-  const qualities = [
-    { value: 1, label: "Normal" },
-    { value: 2, label: "Good" },
-    { value: 3, label: "Outstanding" },
-    { value: 4, label: "Excellent" },
-    { value: 5, label: "Masterpiece" },
-  ];
-
-  useEffect(() => {
-    if (selectedItem) {
-      loadPrices();
-    }
-  }, [selectedItem, selectedQualities, selectedCities, server]);
 
   useEffect(() => {
     if (buyCity) {
@@ -241,64 +142,6 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
       }
     }
   }, [buyCity, prices]);
-
-  const loadPrices = async () => {
-    if (!selectedItem) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchPrices(selectedItem.id, selectedCities, selectedQualities, server);
-
-      let historyData: any[] = [];
-      try {
-        historyData = await fetchHistory(selectedItem.id, selectedCities, selectedQualities, server);
-      } catch (hErr) {
-        console.error("Failed to fetch history context", hErr);
-      }
-
-      const sorted = selectedCities.map(city => {
-        const found = data.find(p => p.city === city);
-        const targetQuality = found ? found.quality : (selectedQualities[0] || 1);
-
-        const history = historyData.find(h => {
-          const hLoc = h.location.toLowerCase().replace(/\s/g, "");
-          const cLoc = city.toLowerCase().replace(/\s/g, "");
-          return hLoc === cLoc && h.quality === targetQuality;
-        });
-
-        let historical_avg = undefined;
-        let historical_count = 0;
-        if (history && history.data && history.data.length > 0) {
-          const sum = history.data.reduce((acc: number, curr: any) => acc + curr.avg_price, 0);
-          historical_avg = Math.round(sum / history.data.length);
-          historical_count = history.data.reduce((acc: number, curr: any) => acc + curr.item_count, 0);
-        }
-
-        return {
-          ...(found || {
-            item_id: selectedItem.id,
-            city,
-            quality: selectedQualities[0] || 1,
-            sell_price_min: 0,
-            sell_price_min_date: "",
-            sell_price_max: 0,
-            sell_price_max_date: "",
-            buy_price_min: 0,
-            buy_price_min_date: "",
-            buy_price_max: 0,
-            buy_price_max_date: "",
-          }),
-          historical_avg,
-          historical_count
-        };
-      });
-      setPrices(sorted);
-    } catch (err) {
-      setError("Failed to fetch market data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     const handleAddCraftItem = (e: Event) => {
@@ -317,6 +160,20 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
       .filter(p => p.sell_price_min > 0)
       .map(p => p.sell_price_min)
   );
+
+  const servers: { id: AlbionServer; label: string }[] = [
+    { id: "West", label: "Americas (West)" },
+    { id: "East", label: "Asia (East)" },
+    { id: "Europe", label: "Europe" },
+  ];
+
+  const qualities = [
+    { value: 1, label: "Normal" },
+    { value: 2, label: "Good" },
+    { value: 3, label: "Outstanding" },
+    { value: 4, label: "Excellent" },
+    { value: 5, label: "Masterpiece" },
+  ];
 
   return (
     <>
@@ -366,7 +223,7 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
               <p className="font-headline font-bold text-sm tracking-widest text-sidebar-foreground uppercase whitespace-nowrap overflow-hidden text-ellipsis group-hover:text-sidebar-primary transition-colors">
                 {user ? user.username : 'Sign In'}
               </p>
-              <p className="text-[10px] text-sidebar-foreground/50 font-medium tracking-tighter truncate">
+              <p className="text-label text-sidebar-foreground/75 font-medium tracking-tighter truncate">
                 {user ? user.email : 'Join the community'}
               </p>
             </div>
@@ -379,7 +236,7 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
           <ScrollArea className="h-full">
             {navMain.map((group) => (
               <SidebarGroup key={group.title}>
-                <SidebarGroupLabel className="text-[10px] font-bold text-sidebar-foreground/40 uppercase tracking-widest">
+                <SidebarGroupLabel className="text-label font-bold text-sidebar-foreground/70 uppercase tracking-widest">
                   {group.title}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -396,12 +253,12 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
                             <item.icon className="w-4 h-4 shrink-0" />
                             <span>{item.label}</span>
                             {item.badge === "New!" && (
-                              <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-black px-1.5 py-0.5 rounded uppercase">
+                              <span className="ml-auto bg-sidebar-primary text-sidebar-primary-foreground text-label font-black px-1.5 py-0.5 rounded uppercase">
                                 {item.badge}
                               </span>
                             )}
                             {item.badge === true && unreadNotifications > 0 && (
-                              <span className="ml-auto bg-destructive text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse min-w-5 text-center">
+                              <span className="ml-auto bg-destructive text-white text-label font-black px-1.5 py-0.5 rounded-full animate-pulse min-w-5 text-center">
                                 {unreadNotifications}
                               </span>
                             )}
@@ -418,11 +275,11 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
 
         <SidebarFooter className="p-4 border-t border-sidebar-border">
           <div className="flex flex-col gap-2">
-            <a href="#" className="flex items-center gap-3 text-sidebar-foreground/40 text-[10px] uppercase tracking-widest hover:text-sidebar-primary transition-colors">
+            <a href="#" className="flex items-center gap-3 text-sidebar-foreground/70 text-label uppercase tracking-widest hover:text-sidebar-primary transition-colors">
               <Info className="w-4 h-4" />
               <span>Support</span>
             </a>
-            <a href="https://www.albion-online-data.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sidebar-foreground/40 text-[10px] uppercase tracking-widest hover:text-sidebar-primary transition-colors">
+            <a href="https://www.albion-online-data.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sidebar-foreground/70 text-label uppercase tracking-widest hover:text-sidebar-primary transition-colors">
               <Globe className="w-4 h-4" />
               <span>API</span>
             </a>
@@ -502,223 +359,34 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
 
           {/* Filters */}
           {activeTab !== "crafting" && activeTab !== "refining" && activeTab !== "cooking" && activeTab !== "library" && activeTab !== "profile" && activeTab !== "notifications" && activeTab !== "my-crafting" && (
-            <div className="flex flex-col items-center gap-2 w-full">
-              {/* PRIMARY FILTERS */}
-              <div className="flex flex-wrap items-center justify-center gap-2 w-full px-2">
-                <CityFilter selectedCities={selectedCities} onChange={setSelectedCities} />
+            <div className="w-full glass-panel rounded-xl border border-sidebar-border/20 px-4 py-2 flex flex-wrap items-center justify-evenly gap-2">
+              <PrimaryFilters
+                activeTab={activeTab}
+                selectedCities={selectedCities}
+                onCitiesChange={setSelectedCities}
+                selectedQualities={selectedQualities}
+                onQualitiesChange={setSelectedQualities}
+                selectedItem={selectedItem}
+                onItemChange={setSelectedItem}
+                buyPrice={buyPrice}
+                onBuyPriceChange={setBuyPrice}
+                preferredEnchantments={preferredEnchantments}
+                onEnchantmentsChange={setPreferredEnchantments}
+              />
 
-                <div className="flex items-center gap-1 glass-panel p-1 rounded-xl border border-sidebar-border/20">
-                  <span className="text-[9px] font-bold text-sidebar-foreground/40 uppercase tracking-wider hidden sm:block mr-1">Enchant</span>
-                  <div className="flex gap-0.5 sm:gap-1">
-                    {[0, 1, 2, 3, 4].map((level) => {
-                      let isActive = false;
-                      if (activeTab === 'search' && selectedItem) {
-                        const { enchantment } = getBaseIdAndEnchantment(selectedItem.id);
-                        isActive = enchantment === level;
-                      } else {
-                        isActive = preferredEnchantments.includes(level);
-                      }
-                      return (
-                        <button
-                          key={level}
-                          onClick={() => {
-                            if (activeTab === 'search' && selectedItem) {
-                              const { baseId } = getBaseIdAndEnchantment(selectedItem.id);
-                              const newId = level === 0 ? baseId : `${baseId}@${level}`;
-                              setSelectedItem({ ...selectedItem, id: newId, enchantment: level });
-                            } else {
-                              handleEnchantmentChange(level);
-                            }
-                          }}
-                          aria-label={`Enchantment ${level}`}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-xs font-bold transition-all ${getEnchantmentColor(level, isActive)}`}
-                        >
-                          {level}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 h-10 px-3">
-                      <Filter className="w-4 h-4" />
-                      <span className="font-bold uppercase tracking-wider text-xs hidden sm:inline">Quality</span>
-                      <span className="bg-sidebar-primary text-sidebar-primary-foreground px-1.5 py-0.5 rounded text-xs font-bold">{selectedQualities.length}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
-                    {qualities.map((q) => (
-                      <DropdownMenuCheckboxItem
-                        key={q.value}
-                        checked={selectedQualities.includes(q.value as ItemQuality)}
-                        onCheckedChange={(checked) => {
-                          const val = q.value as ItemQuality;
-                          if (checked) {
-                            setSelectedQualities([...selectedQualities, val]);
-                          } else {
-                            if (selectedQualities.length > 1) {
-                              setSelectedQualities(selectedQualities.filter(x => x !== val));
-                            }
-                          }
-                        }}
-                      >
-                        {q.label}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {activeTab === "search" && (
-                  <div className="flex items-center gap-2 glass-panel p-2 rounded-xl border border-sidebar-border/20 h-10 sm:h-12">
-                    <span className="text-sidebar-foreground/50 font-medium text-xs sm:text-sm px-2">Buy:</span>
-                    <input
-                      type="number"
-                      value={buyPrice || ""}
-                      onChange={(e) => setBuyPrice(Number(e.target.value))}
-                      placeholder="0"
-                      className="bg-transparent text-sidebar-foreground focus:outline-none w-16 sm:w-28 font-mono text-right text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* SECONDARY FILTERS */}
-              {(activeTab === "top-flipping" || activeTab === "market-pulse" || activeTab === "profit-scanner") && (
-                <div className="flex flex-wrap justify-center items-center gap-2 w-full px-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2 h-10 px-3">
-                        <Filter className="w-4 h-4" />
-                        <span className="font-bold uppercase tracking-wider text-xs">Verification</span>
-                        <span className="bg-sidebar-primary text-sidebar-primary-foreground px-1.5 py-0.5 rounded text-xs font-bold">
-                          {allowedStatuses.length}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
-                      {[
-                        { id: 'verified', label: 'Verified' },
-                        { id: 'unknown', label: 'Unknown' },
-                        { id: 'suspicious', label: 'Suspicious' }
-                      ].map((status) => (
-                        <DropdownMenuCheckboxItem
-                          key={status.id}
-                          checked={allowedStatuses.includes(status.id as VerificationStatus)}
-                          onCheckedChange={(checked) => {
-                            const s = status.id as VerificationStatus;
-                            if (checked) {
-                              setAllowedStatuses([...allowedStatuses, s]);
-                            } else {
-                              if (allowedStatuses.length > 1) {
-                                setAllowedStatuses(allowedStatuses.filter(x => x !== s));
-                              }
-                            }
-                          }}
-                        >
-                          {status.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2 h-10 px-3">
-                        <Filter className="w-4 h-4" />
-                        <span className="font-bold uppercase tracking-wider text-xs">Cat</span>
-                        <span className="bg-sidebar-primary text-sidebar-primary-foreground px-1.5 py-0.5 rounded text-xs font-bold">{selectedCategories.includes("All") ? "All" : selectedCategories.length}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56 bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
-                      <ScrollArea className="h-64">
-                        {categories.map((cat) => (
-                          <DropdownMenuCheckboxItem
-                            key={cat}
-                            checked={selectedCategories.includes(cat)}
-                            onCheckedChange={(checked) => {
-                              if (cat === "All") {
-                                setSelectedCategories(["All"]);
-                              } else {
-                                let newCats = selectedCategories.filter(c => c !== "All");
-                                if (checked) {
-                                  newCats = [...newCats, cat];
-                                } else {
-                                  if (newCats.length > 1) {
-                                    newCats = newCats.filter(c => c !== cat);
-                                  } else {
-                                    newCats = ["All"];
-                                  }
-                                }
-                                setSelectedCategories(newCats);
-                              }
-                              setSelectedSubCategory("All");
-                            }}
-                          >
-                            {cat}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </ScrollArea>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2 h-10 px-3">
-                        <Filter className="w-4 h-4" />
-                        <span className="font-bold uppercase tracking-wider text-xs">Sub</span>
-                        <span className="bg-sidebar-primary text-sidebar-primary-foreground px-1.5 py-0.5 rounded text-xs font-bold">{selectedSubCategory}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
-                      <ScrollArea className="h-64">
-                        {subCategories.map((sub) => (
-                          <DropdownMenuCheckboxItem
-                            key={sub}
-                            checked={selectedSubCategory === sub}
-                            onCheckedChange={() => {
-                              setSelectedSubCategory(sub);
-                            }}
-                          >
-                            {sub}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </ScrollArea>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2 h-10 px-3">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-bold uppercase tracking-wider text-xs">Age</span>
-                        <span className="bg-sidebar-primary text-sidebar-primary-foreground px-1.5 py-0.5 rounded text-xs font-bold">
-                          {maxAgeHours === 0 ? "Any" : `${maxAgeHours}h`}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
-                      {[
-                        { value: 1, label: "1 Hour" },
-                        { value: 6, label: "6 Hours" },
-                        { value: 12, label: "12 Hours" },
-                        { value: 24, label: "24 Hours" },
-                        { value: 0, label: "Any Age" }
-                      ].map((age) => (
-                        <DropdownMenuItem
-                          key={age.value}
-                          onClick={() => setMaxAgeHours(age.value)}
-                          className={cn(maxAgeHours === age.value && "bg-accent")}
-                        >
-                          {age.label}
-                          {maxAgeHours === age.value && <Check className="w-4 h-4 ml-auto" />}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
+              <SecondaryFilters
+                activeTab={activeTab}
+                allowedStatuses={allowedStatuses}
+                onStatusesChange={setAllowedStatuses}
+                selectedCategories={selectedCategories}
+                onCategoriesChange={setSelectedCategories}
+                selectedSubCategory={selectedSubCategory}
+                onSubCategoryChange={setSelectedSubCategory}
+                maxAgeHours={maxAgeHours}
+                onMaxAgeChange={setMaxAgeHours}
+                categories={categories}
+                subCategories={subCategories}
+              />
             </div>
           )}
 
@@ -860,7 +528,7 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
                       </span>
                     </div>
                   </div>
-                  <div className="md:ml-auto flex items-center gap-2 text-sidebar-foreground/50 text-xs bg-black/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 shrink-0">
+                  <div className="md:ml-auto flex items-center gap-2 text-sidebar-foreground/75 text-xs bg-black/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/5 shrink-0">
                     <Info className="w-4 h-4" />
                     <p className="max-w-50 hidden sm:block">Data is crowdsourced via AODP.</p>
                   </div>
@@ -869,7 +537,7 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-4">
                     <Loader2 className="w-12 h-12 text-sidebar-primary animate-spin" />
-                    <p className="text-sidebar-foreground/50 font-mono uppercase tracking-widest animate-pulse">Fetching Market Data...</p>
+                    <p className="text-sidebar-foreground/75 font-mono uppercase tracking-widest animate-pulse">Fetching Market Data...</p>
                   </div>
                 ) : error ? (
                   <div className="bg-destructive/10 border border-destructive/50 p-8 rounded-3xl text-center space-y-4">
@@ -902,7 +570,7 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
                 <div className="glass-panel w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-sidebar-border/20">
                   <Settings className="w-10 h-10 text-sidebar-foreground/30 animate-spin-slow" />
                 </div>
-                <h3 className="text-2xl font-bold text-sidebar-foreground/50 uppercase tracking-widest">Select an item to begin</h3>
+                <h3 className="text-2xl font-bold text-sidebar-foreground/75 uppercase tracking-widest">Select an item to begin</h3>
                 <p className="text-sidebar-foreground/30 max-w-xs mx-auto">Use the search bar above to find items from the Royal Cities and Caerleon.</p>
               </motion.div>
             )}
@@ -920,3 +588,11 @@ export default function AppShell({ server, onServerChange }: { server: AlbionSer
     </>
   );
 }
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
@@ -48,10 +48,18 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-black/90 border border-white/10 border-t-0 border-l-0" />
+        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-sm bg-black/90 border border-white/10 border-t-0 border-l-0" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )
 }
 
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
+
+
+
+
+
+
+
+

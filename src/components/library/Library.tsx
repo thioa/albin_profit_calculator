@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { AlbionItem } from "../../types/albion";
 import SearchBar from "../common/SearchBar";
 import { BookOpen, Info, ArrowRight, Package, Calculator } from "lucide-react";
@@ -33,7 +33,7 @@ export default function Library() {
   }, [selectedItem]);
 
   return (
-    <div className="space-y-6 max-w-[1000px] mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="glass-panel p-5 rounded-2xl border border-primary/10 relative z-20">
         <div className="flex items-center gap-3 mb-4">
           <BookOpen className="w-5 h-5 text-primary" />
@@ -62,9 +62,9 @@ export default function Library() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-3xl font-black text-white uppercase italic truncate">{selectedItem.name}</h3>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="px-2 py-1 bg-gray-800 text-on-surface text-[10px] font-bold uppercase tracking-widest rounded-md">Tier {selectedItem.tier}</span>
-                  <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-md border border-primary/20">{selectedItem.category}</span>
-                  {selectedItem.subCategory && <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-md border border-blue-500/20">{selectedItem.subCategory}</span>}
+                  <span className="px-2 py-1 bg-gray-800 text-foreground text-label font-bold uppercase tracking-widest rounded-md">Tier {selectedItem.tier}</span>
+                  <span className="px-2 py-1 bg-primary/10 text-primary text-label font-bold uppercase tracking-widest rounded-md border border-primary/20">{selectedItem.category}</span>
+                  {selectedItem.subCategory && <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-label font-bold uppercase tracking-widest rounded-md border border-blue-500/20">{selectedItem.subCategory}</span>}
                 </div>
               </div>
             </div>
@@ -85,7 +85,7 @@ export default function Library() {
                             <div key={req.id} className="flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5">
                               <img src={item?.icon || `https://render.albiononline.com/v1/item/${req.id}.png`} alt="" className="w-8 h-8" referrerPolicy="no-referrer" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-bold text-on-surface truncate">{item?.name || req.id}</div>
+                                <div className="text-sm font-bold text-foreground truncate">{item?.name || req.id}</div>
                               </div>
                               <div className="font-mono font-bold text-primary px-3">{req.count}x</div>
                             </div>
@@ -115,14 +115,14 @@ export default function Library() {
                 <div className="bg-black/30 p-4 border-b border-primary/10 text-sm font-black text-primary/60 uppercase tracking-widest flex items-center gap-2">
                   <ArrowRight className="w-4 h-4" /> Used To Craft
                 </div>
-                <div className="p-4 flex-1 overflow-y-auto max-h-[400px] custom-scrollbar">
+                <div className="p-4 flex-1 overflow-y-auto max-h-96">
                   {usedInRecipes.length > 0 ? (
                     <div className="space-y-2">
                       {usedInRecipes.map(recipeItem => (
                         <div key={recipeItem.id} className="flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
                           <img src={recipeItem.icon} alt="" className="w-8 h-8" referrerPolicy="no-referrer" />
                           <div className="flex-1 min-w-0 flex items-center justify-between">
-                            <div className="text-sm font-bold text-on-surface truncate group-hover:text-white transition-colors">{recipeItem.name}</div>
+                            <div className="text-sm font-bold text-foreground truncate group-hover:text-white transition-colors">{recipeItem.name}</div>
                             <button 
                               onClick={() => dispatchAddItem(recipeItem)}
                               className="opacity-0 group-hover:opacity-100 p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-black rounded-lg transition-all"
@@ -149,3 +149,11 @@ export default function Library() {
     </div>
   );
 }
+
+
+
+
+
+
+
+

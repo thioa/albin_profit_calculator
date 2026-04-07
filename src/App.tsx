@@ -16,7 +16,7 @@ export default function App() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background text-foreground font-body selection:bg-primary/30 selection:text-primary dark">
+      <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 selection:text-primary dark">
         <WatchlistProvider server={server}>
           <AppShell
             server={server}
